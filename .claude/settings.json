@@ -1,11 +1,7 @@
 {
-  "enabledPlugins": {},
   "extraKnownMarketplaces": {
     "enterspeed": {
-      "source": {
-        "source": "github",
-        "repo": "enterspeedhq/agent-skills"
-      }
+      "source": { "source": "github", "repo": "enterspeedhq/agent-skills" }
     }
   }
 }

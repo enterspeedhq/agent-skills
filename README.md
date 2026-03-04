@@ -7,7 +7,7 @@ Shared AI agent skills for the Enterspeed team, distributed as a Claude Code mar
 From your terminal, run:
 
 ```bash
-claude plugin install enterspeed@enterspeed --scope project
+claude plugin install enterspeed@enterspeed
 ```
 
 > **Note:** Once org-managed settings are fully configured, this step will happen automatically for all team members. Until then, each person runs the command above once.
