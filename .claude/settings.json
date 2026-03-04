@@ -1,0 +1,7 @@
+{
+  "extraKnownMarketplaces": {
+    "enterspeed": {
+      "source": { "source": "github", "repo": "enterspeedhq/agent-skills" }
+    }
+  }
+}
