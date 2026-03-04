@@ -1,0 +1,123 @@
+name: Skill Review
+
+on:
+  pull_request:
+    paths:
+      - 'plugins/enterspeed/skills/**/SKILL.md'
+      - '.claude-plugin/marketplace.json'
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed skill files
+        id: changed
+        run: |
+          SKILLS=$(git diff --name-only origin/main...HEAD | grep 'plugins/enterspeed/skills/.*/SKILL.md' || true)
+          echo "skills<<EOF" >> $GITHUB_OUTPUT
+          echo "$SKILLS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Check version bump
+        id: version
+        run: |
+          BUMPED=$(git diff origin/main...HEAD -- .claude-plugin/marketplace.json | grep '+"version"' || true)
+          if [ -z "$BUMPED" ]; then
+            echo "bumped=false" >> $GITHUB_OUTPUT
+          else
+            echo "bumped=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Review skills with Claude
+        if: steps.changed.outputs.skills != ''
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CHANGED_SKILLS: ${{ steps.changed.outputs.skills }}
+          VERSION_BUMPED: ${{ steps.version.outputs.bumped }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          pip install anthropic requests --quiet
+
+          python3 << 'PYEOF'
+          import os
+          import json
+          import anthropic
+          import requests
+
+          client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+          changed_skills = [s for s in os.environ["CHANGED_SKILLS"].strip().split("\n") if s]
+          version_bumped = os.environ["VERSION_BUMPED"] == "true"
+
+          reviews = []
+
+          for skill_path in changed_skills:
+              if not os.path.exists(skill_path):
+                  continue
+
+              with open(skill_path) as f:
+                  content = f.read()
+
+              skill_name = skill_path.split("/")[-2]
+
+              response = client.messages.create(
+                  model="claude-haiku-4-5-20251001",
+                  max_tokens=1024,
+                  messages=[{
+                      "role": "user",
+                      "content": f"""Review this Claude Code skill file and give concise, actionable feedback.
+
+Skill: {skill_name}
+File: {skill_path}
+
+```markdown
+{content}
+```
+
+Check for:
+1. **Frontmatter** — are `name`, `description`, and `version` all present?
+2. **Description quality** — is it specific enough for Claude to know exactly when to trigger this skill? Does it include concrete trigger phrases or examples?
+3. **Skill body** — is the instruction clear, focused, and actionable? Does it give Claude enough context to do its job?
+4. **Scope** — is this skill focused on one thing, or trying to do too much?
+
+Format your response as:
+- A brief summary (1-2 sentences)
+- Bullet points for any issues found (be specific)
+- A clear LGTM or NEEDS WORK verdict at the end
+
+Be constructive and concise. If the skill is good, say so briefly."""
+                  }]
+              )
+
+              reviews.append(f"### `{skill_name}`\n\n{response.content[0].text}")
+
+          # Build comment
+          body = "## 🤖 Skill Review\n\n"
+
+          if not version_bumped:
+              body += "> ⚠️ **Version not bumped** — remember to increment the version in `.claude-plugin/marketplace.json`\n\n"
+
+          if reviews:
+              body += "\n\n---\n\n".join(reviews)
+          else:
+              body += "_No skill files changed._"
+
+          # Post comment
+          headers = {
+              "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
+              "Accept": "application/vnd.github+json"
+          }
+          url = f"https://api.github.com/repos/{os.environ['REPO']}/issues/{os.environ['PR_NUMBER']}/comments"
+          requests.post(url, headers=headers, json={"body": body})
+
+          print("Review posted.")
+          PYEOF
