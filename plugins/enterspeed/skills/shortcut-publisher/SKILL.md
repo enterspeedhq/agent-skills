@@ -1,5 +1,6 @@
 ---
 name: shortcut-publisher
+version: 1.0.0
 description: Publish a user story to Shortcut for the Enterspeed Engineering team. Use when the user says "save to Shortcut", "create this in Shortcut", "add to Shortcut", "post to Shortcut", or "publish this story". Works on its own with a raw description, or after the enterspeed-user-stories skill has generated a formatted story.
 ---
 

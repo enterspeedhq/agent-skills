@@ -1,5 +1,6 @@
 ---
 name: shortcut-demo-planner
+version: 1.0.0
 description: Plan a sprint or iteration demo using completed Shortcut stories. Use this skill whenever the user says "plan my demo", "prepare a demo", "make a demo from my stories", "what should I demo", "create a demo presentation from Shortcut", or any combination of Shortcut story review + demo planning. Orchestrates the shortcut-summarizer and revealjs-presentation skills: fetches stories, groups them into demo-friendly themes, suggests a demo order with talking points, and generates a Reveal.js presentation.
 ---
 

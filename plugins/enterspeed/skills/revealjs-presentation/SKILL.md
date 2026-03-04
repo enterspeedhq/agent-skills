@@ -1,5 +1,6 @@
 ---
 name: revealjs-presentation
+version: 1.0.0
 description: Generate a polished, self-contained Reveal.js HTML presentation from structured content. Use this skill whenever the user asks to "make a presentation", "create slides", "build a Reveal.js deck", "turn this into a presentation", or when another skill (like shortcut-demo-planner) needs to produce a slide deck. Output is a single .html file that opens in any browser with no dependencies or installation required. Supports speaker notes, theming, and section grouping.
 ---
 

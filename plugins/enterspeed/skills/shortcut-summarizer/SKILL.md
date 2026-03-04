@@ -1,5 +1,6 @@
 ---
 name: shortcut-summarizer
+version: 1.0.0
 description: Fetch and summarize Shortcut stories for a given owner, time range, and workflow column. Use this skill whenever the user asks to "show my completed stories", "what did I work on", "list stories in doing", "show last 2 weeks", "what has [person] done", "summarize my sprint", "what's in development", "what's ready for review", "give me an overview of the team", or any request to retrieve and display Shortcut stories. Defaults to the token owner, last 4 weeks, and done column — all overridable via natural language. Also used as a data-fetching step by other skills like shortcut-demo-planner.
 ---
 
