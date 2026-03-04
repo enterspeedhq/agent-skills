@@ -1,26 +1,16 @@
 # agent-skills
 
-Shared AI agent skills and plugins for the Enterspeed team, distributed as a Claude Code marketplace.
+Shared AI agent skills for the Enterspeed team, distributed as a Claude Code marketplace.
 
 ## Setup (one-time)
 
-Add the following to your `~/.claude/settings.json` to register the marketplace:
+From your terminal, run:
 
-```json
-{
-  "extraKnownMarketplaces": {
-    "enterspeed": {
-      "source": { "source": "github", "repo": "enterspeedhq/agent-skills" }
-    }
-  }
-}
+```bash
+claude plugin install enterspeed@enterspeed --scope project
 ```
 
-Then install the plugin:
-
-```
-/plugin install enterspeed@enterspeed
-```
+> **Note:** Once org-managed settings are fully configured, this step will happen automatically for all team members. Until then, each person runs the command above once.
 
 ## Updates
 
@@ -28,27 +18,27 @@ Skills are added via pull requests. When a new skill is merged, the plugin versi
 
 To manually trigger an update:
 
-```
-/plugin update enterspeed@enterspeed
+```bash
+claude plugin update enterspeed@enterspeed
 ```
 
 ## Contributing
 
 1. Branch from `main`
 2. Add your skill under `plugins/enterspeed/skills/<skill-name>/SKILL.md`
-3. Bump the version in `plugins/enterspeed/.claude-plugin/plugin.json`
-4. Open a PR with a description of what the skill does
+3. Bump the version in `.claude-plugin/marketplace.json`
+4. Open a PR — the template will guide you
 
 ## Structure
 
 ```
 agent-skills/
 ├── .claude-plugin/
-│   └── marketplace.json         # Marketplace definition
+│   └── marketplace.json         # Marketplace definition + version
 └── plugins/
     └── enterspeed/
         ├── .claude-plugin/
-        │   └── plugin.json      # Plugin metadata + version
+        │   └── plugin.json      # Plugin metadata
         └── skills/
             └── <skill-name>/
                 └── SKILL.md
