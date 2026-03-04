@@ -24,10 +24,39 @@ claude plugin update enterspeed@enterspeed
 
 ## Contributing
 
+### Skill file structure
+
+Every skill is a single markdown file with a frontmatter header:
+
+```
+plugins/enterspeed/skills/<skill-name>/
+└── SKILL.md
+```
+
+The `SKILL.md` must start with:
+
+```yaml
+---
+name: your-skill-name
+description: When to trigger this skill — be specific, this is what Claude reads to decide whether to use it.
+version: 1.0.0
+---
+```
+
+Followed by the skill body: instructions, context, templates, or anything Claude should know when the skill activates.
+
+### Steps
+
 1. Branch from `main`
-2. Add your skill under `plugins/enterspeed/skills/<skill-name>/SKILL.md`
-3. Bump the version in `.claude-plugin/marketplace.json`
+2. Create `plugins/enterspeed/skills/<skill-name>/SKILL.md`
+3. Bump the version in `.claude-plugin/marketplace.json` (e.g. `1.2.0` → `1.3.0`)
 4. Open a PR — the template will guide you
+
+### Tips
+
+- The `description` field is critical — it's how Claude decides when to invoke your skill. Be explicit about trigger phrases and use cases.
+- Keep skills focused on one thing. Compose multiple skills for complex workflows (see `shortcut-demo-planner` for an example).
+- If your skill needs scripts, add them alongside `SKILL.md` under the same directory.
 
 ## Structure
 
