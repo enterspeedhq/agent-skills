@@ -1,8 +1,25 @@
 import os
+import time
 import requests
 import anthropic
 
 client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+
+def call_claude(prompt, retries=3, delay=10):
+    for attempt in range(retries):
+        try:
+            return client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=1024,
+                messages=[{"role": "user", "content": prompt}]
+            )
+        except anthropic.APIStatusError as e:
+            if e.status_code == 529 and attempt < retries - 1:
+                print(f"API overloaded, retrying in {delay}s... (attempt {attempt + 1}/{retries})")
+                time.sleep(delay)
+            else:
+                raise
 
 changed_skills = [s for s in os.environ.get("CHANGED_SKILLS", "").strip().split("\n") if s]
 version_bumped = os.environ.get("VERSION_BUMPED", "false") == "true"
@@ -35,11 +52,7 @@ for skill_path in changed_skills:
         f"Be constructive and concise. If the skill is good, say so briefly."
     )
 
-    response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=1024,
-        messages=[{"role": "user", "content": prompt}]
-    )
+    response = call_claude(prompt)
 
     reviews.append(f"### `{skill_name}`\n\n{response.content[0].text}")
 
