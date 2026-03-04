@@ -1,11 +1,6 @@
 ---
 name: shortcut-setup
-description: >
-  Set up the Shortcut API token securely using 1Password for the Enterspeed org.
-  Use this skill whenever the user needs to configure their Shortcut API token,
-  gets a SHORTCUT_API_TOKEN error, asks "how do I set up Shortcut", or is running
-  a Shortcut skill for the first time. Referenced by shortcut-publisher,
-  shortcut-summarizer, and shortcut-demo-planner.
+description: Set up the Shortcut API token securely using 1Password for the Enterspeed org. Use this skill whenever the user needs to configure their Shortcut API token, gets a SHORTCUT_API_TOKEN error, asks "how do I set up Shortcut", or is running a Shortcut skill for the first time. Referenced by shortcut-publisher, shortcut-summarizer, and shortcut-demo-planner.
 ---
 
 # Shortcut Setup
