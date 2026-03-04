@@ -1,0 +1,14 @@
+{
+  "name": "enterspeed",
+  "owner": {
+    "name": "Enterspeed",
+    "email": "dev@enterspeed.com"
+  },
+  "plugins": [
+    {
+      "name": "enterspeed",
+      "source": "./plugins/enterspeed",
+      "description": "Enterspeed team skills for AI agents"
+    }
+  ]
+}
