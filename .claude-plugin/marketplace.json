@@ -1,5 +1,7 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "enterspeed",
+  "description": "Shared AI agent skills for the Enterspeed team",
   "owner": {
     "name": "Enterspeed",
     "email": "dev@enterspeed.com"
@@ -7,8 +9,14 @@
   "plugins": [
     {
       "name": "enterspeed",
+      "description": "Shared AI agent skills for the Enterspeed team",
+      "version": "1.1.0",
+      "author": {
+        "name": "Enterspeed",
+        "email": "dev@enterspeed.com"
+      },
       "source": "./plugins/enterspeed",
-      "description": "Enterspeed team skills for AI agents"
+      "category": "productivity"
     }
   ]
 }
