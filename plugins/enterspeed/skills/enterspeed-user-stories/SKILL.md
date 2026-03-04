@@ -1,6 +1,6 @@
 ---
 name: enterspeed-user-stories
-description: Generate well-structured user stories for Enterspeed using the standard team template. Use when someone describes a feature, capability, or user role + goal and needs a formatted user story. Works from rough ideas or specific role+goal inputs.
+description: Generate well-structured user stories for Enterspeed using the standard team template. Use when someone describes a feature, capability, or user role + goal and needs a formatted user story. Works from rough ideas or specific role+goal inputs. Updated description to test skill review workflow.
 ---
 
 # Enterspeed User Story Generator
