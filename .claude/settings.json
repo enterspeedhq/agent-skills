@@ -3,5 +3,8 @@
     "enterspeed": {
       "source": { "source": "github", "repo": "enterspeedhq/agent-skills" }
     }
+  },
+  "enabledPlugins": {
+    "enterspeed@enterspeed": true
   }
 }
