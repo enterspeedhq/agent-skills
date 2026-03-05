@@ -1,5 +1,6 @@
 ---
 name: gitflow-release
+version: 1.6.0
 description: Automate git flow releases for Enterspeed projects. Use when the user says "release", "cut a release", "start a release", "git flow release", or "bump the version".
 ---
 
@@ -29,6 +30,15 @@ git flow config
 ```
 
 If it fails, stop and tell the user to run `git flow init` first.
+
+Verify the GitHub CLI is installed:
+
+```bash
+gh --version
+```
+
+If not installed, stop and tell the user:
+> "GitHub CLI (`gh`) is not installed. Install it with `brew install gh` and authenticate with `gh auth login` first."
 
 Verify the working directory is clean:
 
@@ -78,7 +88,8 @@ Find the most recent tag:
 git describe --tags --abbrev=0 2>/dev/null || echo "no-tags"
 ```
 
-Tags follow plain semver format without a `v` prefix (e.g. `1.53.0`, not `v1.53.0`).
+Enterspeed projects use plain semver tags without a `v` prefix (e.g. `1.53.0`, not `v1.53.0`). If the detected tag starts with `v`, stop and tell the user:
+> "The most recent tag (`<tag>`) uses a `v` prefix, which doesn't match the expected convention. Please check your tags and correct the format before releasing."
 
 List real commits (excluding merges) since the last tag:
 
@@ -93,7 +104,7 @@ git log --no-merges --oneline -20
 ```
 
 If no commits are found since the last tag, tell the user:
-> "No commits found since the last release. There may be nothing to release. Should I still proceed with a patch bump, or skip the release?"
+> "No commits found since the last release. There may be nothing to release. Should I still proceed with a patch bump (`{major}.{minor}.{patch+1}`), or skip the release?"
 Stop and wait for their answer before continuing.
 
 Determine the suggested bump following [Conventional Commits](https://www.conventionalcommits.org/). Check commit subjects (the `--oneline` output) and also run a full log to catch `BREAKING CHANGE` in commit footers:
