@@ -1,6 +1,6 @@
 ---
 name: gitflow-release-finish
-version: 1.0.0
+version: 1.1.0
 description: Finish a git flow release after both PRs are merged: verifies PR state, pulls master and develop, deletes the local release branch, creates and pushes the version tag. Use when the user says "finish the release", "both PRs are merged", "release is merged", or "tag the release". Always run after gitflow-release-start.
 ---
 
@@ -34,8 +34,11 @@ Check that the develop PR is merged:
 gh pr view <develop-pr-number> --json state --jq '.state'
 ```
 
-Both must return `MERGED`. If either returns `OPEN` or `CLOSED`, stop and tell the user:
+Both must return `MERGED`. If either returns `OPEN`, stop and tell the user:
 > "PR #`<number>` is not merged. Merge it on GitHub and run this skill again."
+
+If either returns `CLOSED` (abandoned/rejected), stop and tell the user:
+> "PR #`<number>` was closed without merging. Please check what happened — you may need to reopen it or open a new PR from `release/<version>`."
 
 ---
 
@@ -52,11 +55,19 @@ If either command fails, stop and report the error.
 
 ## Step 3 — Delete local release branch
 
-The remote release branch was deleted by GitHub on merge. Delete the local copy with `-D` (git won't recognise it as merged since GitHub handled the merge):
+The remote release branch was deleted by GitHub on merge. Check if the local copy still exists before deleting:
+
+```bash
+git branch --list "release/<version>"
+```
+
+If it returns output, delete it with `-D` (git won't recognise it as merged since GitHub handled the merge):
 
 ```bash
 git branch -D release/<version>
 ```
+
+If it returns nothing, the branch was already deleted locally — continue to Step 4.
 
 ---
 
@@ -82,10 +93,22 @@ If the tag already exists, do not skip silently — first verify it points to th
 git show <version> --oneline
 ```
 
-If it points to the expected master HEAD, it is safe to proceed to push it. If it points to a different commit, stop and tell the user:
+If it points to the expected master HEAD, the local tag is correct. Check whether it already exists on the remote:
+
+```bash
+git ls-remote --tags origin <version>
+```
+
+If it's already on the remote, skip the push — the release tag is already published. If it's not on the remote, push it:
+
+```bash
+git push origin <version>
+```
+
+If the tag points to a **different** commit, stop and tell the user:
 > "Tag `<version>` already exists but points to an unexpected commit. Investigate before proceeding — do not overwrite the tag."
 
-Otherwise (tag does not exist), create and push it:
+If the tag does not exist at all, create and push it:
 
 ```bash
 git tag <version> $(git rev-parse master)
