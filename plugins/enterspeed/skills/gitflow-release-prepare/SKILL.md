@@ -83,10 +83,14 @@ If no tags exist, list the most recent commits:
 git log --no-merges --oneline -20
 ```
 
-Before proposing a bump, always run a full log to search commit bodies for `BREAKING CHANGE` (the oneline format above only shows commit subjects):
+Before proposing a bump, always run a full log to search commit bodies for `BREAKING CHANGE` (the oneline format above only shows commit subjects). If a tag exists, search from the tag to HEAD; if no tags exist, search the last 20 commits:
 
 ```bash
-git log <last-tag>..HEAD --no-merges --format="%B"
+if [ "<last-tag>" = "no-tags" ]; then
+  git log -20 --no-merges --format="%B"
+else
+  git log <last-tag>..HEAD --no-merges --format="%B"
+fi
 ```
 
 If this command fails, stop and report the error.
@@ -100,13 +104,20 @@ git rev-parse master
 
 If they match, tell the user:
 
-> "No commits found since the last release (`<last-tag>`), and develop and master are on the same commit. There may be nothing to release. Should I still propose a patch bump (`{major}.{minor}.{patch+1}`), or skip the release?"
+> "No commits found since the last release (`<last-tag>`), and develop and master are on the same commit. There may be nothing to release. Should I still propose a patch bump (`{major}.{minor}.{patch+1}`), or skip?"
 
 If they don't match, tell the user:
 
-> "No commits found since the last release (`<last-tag>`) on develop. There may be nothing to release. Should I still propose a patch bump (`{major}.{minor}.{patch+1}`), or skip the release?"
+> "No commits found since the last release (`<last-tag>`) on develop. There may be nothing to release. Should I still propose a patch bump (`{major}.{minor}.{patch+1}`), or skip?"
 
-Stop and wait for their answer. If no response is received within a reasonable time (e.g., 5 minutes of inactivity), stop and tell the user:
+Stop and wait for their answer:
+
+- **If they choose patch bump**: Continue to Step 4 and propose `{major}.{minor}.{patch+1}`
+- **If they choose skip**: Stop the skill. No version is proposed and no further action is taken. Tell the user:
+
+  > "Skipping release preparation. No changes have been made. Re-run this skill when you have commits to release."
+
+If no response is received within a reasonable time, stop and tell the user:
 
 > "No response received. Please re-run this skill when you're ready to continue."
 
@@ -147,11 +158,13 @@ Validate any user-provided version:
 1. Format must match `N.N.N` pattern (three numeric parts separated by dots)
 2. Version must represent a valid semantic bump from the current version:
    - Cannot be lower than current version
-   - Cannot skip versions (e.g., can't go from 1.52.2 to 1.55.0 without explanation)
+   - Must be a single-increment bump (one component bumped by 1, others reset or unchanged):
+     - **Valid**: 1.52.2 → 1.52.3 (patch), 1.52.2 → 1.53.0 (minor), 1.52.2 → 2.0.0 (major)
+     - **Invalid**: 1.52.2 → 1.54.0 (skips 1.53.x), 1.52.2 → 3.0.0 (skips 2.x.x), 1.52.2 → 1.52.5 (skips patches)
 
 If the format is invalid or the bump logic seems wrong, reject it and re-prompt:
 
-> "Version `X.Y.Z` doesn't look right. It should be higher than `{current}` and follow semantic versioning. Please provide `MAJOR.MINOR.PATCH` (e.g., 1.53.0)."
+> "Version `X.Y.Z` doesn't look right. It should be higher than `{current}` and follow semantic versioning with single-increment bumps only. Please provide `MAJOR.MINOR.PATCH` (e.g., 1.53.0)."
 
 If no response is received within a reasonable time, stop and tell the user:
 
