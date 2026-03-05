@@ -1,18 +1,20 @@
 ---
 name: gitflow-release
-version: 1.0.0
-description: Run a git flow release for an Enterspeed project. Use when the user says "release", "cut a release", "start a release", "git flow release", or "bump the version". Reads the current version from azure-pipeline.yaml, analyses git log since the last tag to propose a major/minor/patch bump, pulls master and develop, runs git flow release start/finish with a version commit, then asks to push.
+version: 1.1.0
+description: Automate git flow releases for Enterspeed projects. Use when the user says "release", "cut a release", "start a release", "git flow release", or "bump the version". Reads version from azure-pipeline.yaml, proposes a semantic bump from git log, and runs the full git flow release cycle.
 ---
 
 # Git Flow Release
 
 Automates the full git flow release process: reads the current semantic version from `azure-pipeline.yaml`, proposes a version bump based on unreleased commits, runs the git flow release cycle, updates the pipeline version, and asks to push.
 
+> **Stop on any error** — if any step fails unexpectedly, report the full error output to the user and do not proceed to the next step.
+
 ---
 
 ## Prerequisites check
 
-Before starting, verify that:
+Before starting, verify that git flow is installed:
 
 ```bash
 git flow version
@@ -21,7 +23,7 @@ git flow version
 If git flow is not installed, stop and tell the user:
 > "git flow is not installed. Install it with `brew install git-flow-avh` and run `git flow init` in your project first."
 
-Also verify that `git flow` has been initialized in the repo:
+Verify that git flow has been initialized in the repo:
 
 ```bash
 git flow config
@@ -59,16 +61,16 @@ Find the most recent semver tag:
 git describe --tags --abbrev=0 2>/dev/null || echo "no-tags"
 ```
 
-If a tag exists, list commits since that tag:
+If a tag exists, list real commits (excluding merges) since that tag:
 
 ```bash
-git log <last-tag>..HEAD --oneline
+git log <last-tag>..HEAD --no-merges --oneline
 ```
 
-If no tags exist, list all commits:
+If no tags exist, list the most recent commits:
 
 ```bash
-git log --oneline -20
+git log --no-merges --oneline -20
 ```
 
 Analyze the commit messages and determine the suggested bump:
@@ -108,7 +110,7 @@ git checkout master && git pull origin master
 git checkout develop && git pull origin develop
 ```
 
-If either pull fails (e.g. uncommitted changes, merge conflicts), stop and report the error to the user.
+If either command fails (e.g. uncommitted changes, merge conflicts), stop and report the error. Do not continue until the user resolves it.
 
 ---
 
@@ -118,7 +120,7 @@ If either pull fails (e.g. uncommitted changes, merge conflicts), stop and repor
 git flow release start <version>
 ```
 
-This creates and checks out `release/<version>` from `develop`.
+This creates and checks out `release/<version>` from `develop`. If it fails, stop and report the error.
 
 ---
 
@@ -126,15 +128,15 @@ This creates and checks out `release/<version>` from `develop`.
 
 Split `<version>` into its three components (e.g. `1.53.0` → major=1, minor=53, patch=0).
 
-Update the three variables in `azure-pipeline.yaml` using exact line replacements. Use a Python one-liner to make the replacements precisely:
+Update the three variables in `azure-pipeline.yaml` using multiline-aware regex to handle any indentation or spacing:
 
 ```bash
 python3 -c "
-import re, sys
+import re
 content = open('azure-pipeline.yaml').read()
-content = re.sub(r'(majorVersion:\s*)\d+', r'\g<1><MAJOR>', content)
-content = re.sub(r'(minorVersion:\s*)\d+', r'\g<1><MINOR>', content)
-content = re.sub(r'(patchVersion:\s*)\d+', r'\g<1><PATCH>', content)
+content = re.sub(r'^(\s*majorVersion:\s*)\d+', r'\g<1><MAJOR>', content, flags=re.MULTILINE)
+content = re.sub(r'^(\s*minorVersion:\s*)\d+', r'\g<1><MINOR>', content, flags=re.MULTILINE)
+content = re.sub(r'^(\s*patchVersion:\s*)\d+', r'\g<1><PATCH>', content, flags=re.MULTILINE)
 open('azure-pipeline.yaml', 'w').write(content)
 print('Updated azure-pipeline.yaml to <MAJOR>.<MINOR>.<PATCH>')
 "
@@ -142,13 +144,13 @@ print('Updated azure-pipeline.yaml to <MAJOR>.<MINOR>.<PATCH>')
 
 Replace `<MAJOR>`, `<MINOR>`, `<PATCH>` with the actual numeric values before running.
 
-Verify the change looks correct:
+Verify the change looks correct before committing:
 
 ```bash
 grep -E '^\s*(majorVersion|minorVersion|patchVersion):' azure-pipeline.yaml
 ```
 
-Then commit:
+If the values are not what you expect, stop and report the discrepancy to the user. Otherwise commit:
 
 ```bash
 git add azure-pipeline.yaml
@@ -169,11 +171,7 @@ This will:
 3. Merge `release/<version>` back into `develop`
 4. Delete the release branch
 
-If the finish command fails due to merge conflicts, report the exact error and tell the user to resolve the conflicts manually, then run:
-```bash
-GIT_MERGE_AUTOEDIT=no git flow release finish -m "Release <version>" <version>
-```
-again after resolving.
+If the finish command fails due to merge conflicts, report the exact error and tell the user to resolve the conflicts manually, then run the same command again after resolving. If it fails for any other reason, stop and report the error.
 
 ---
 
@@ -196,4 +194,18 @@ If the user confirms, run:
 git push origin master && git push origin develop && git push --tags
 ```
 
-Report success or any errors.
+Report success or any errors. If the push fails, no local changes are lost — the user can retry with the same command.
+
+---
+
+## If something goes wrong
+
+At any point the user can undo local changes:
+
+- **Before `git flow release finish`**: delete the release branch and the release is fully undone:
+  ```bash
+  git checkout develop
+  git branch -D release/<version>
+  ```
+- **After `git flow release finish` but before pushing**: the local state is committed but nothing is on the remote yet. The user should contact a team member before force-resetting, as it involves rewriting local history on master.
+- **After pushing**: revert is complex and team coordination is required. Advise the user to open a discussion with the team.
