@@ -1,6 +1,6 @@
 ---
 name: gitflow-release
-version: 1.1.0
+version: 1.2.0
 description: Automate git flow releases for Enterspeed projects. Use when the user says "release", "cut a release", "start a release", "git flow release", or "bump the version". Reads version from azure-pipeline.yaml, proposes a semantic bump from git log, and runs the full git flow release cycle.
 ---
 
@@ -159,53 +159,91 @@ git commit -m "Bump version to <version>"
 
 ---
 
-## Step 6 — Finish release
+## Step 6 — Push release branch and open PRs
+
+Push the release branch to origin:
 
 ```bash
-GIT_MERGE_AUTOEDIT=no git flow release finish -m "Release <version>" <version>
+git push origin release/<version>
 ```
 
-This will:
-1. Merge `release/<version>` into `master`
-2. Tag `master` with `<version>`
-3. Merge `release/<version>` back into `develop`
-4. Delete the release branch
+Then open two pull requests using the GitHub CLI:
 
-If the finish command fails due to merge conflicts, report the exact error and tell the user to resolve the conflicts manually, then run the same command again after resolving. If it fails for any other reason, stop and report the error.
+**PR 1 — release → master** (the production merge):
+```bash
+gh pr create \
+  --base master \
+  --head release/<version> \
+  --title "Release <version>" \
+  --body "## Release <version>
+
+Bumps version to \`<version>\` in \`azure-pipeline.yaml\`.
+
+### Checklist
+- [ ] Version variables updated correctly in \`azure-pipeline.yaml\`
+- [ ] CI passes on the release branch
+- [ ] Reviewed and approved"
+```
+
+**PR 2 — release → develop** (the back-merge):
+```bash
+gh pr create \
+  --base develop \
+  --head release/<version> \
+  --title "Back-merge release <version> into develop" \
+  --body "Merges release branch back into develop after the \`<version>\` release."
+```
+
+Show the user both PR URLs and tell them:
+> "Two PRs are open. Merge the **master PR first**, then the **develop PR**. Come back here once both are merged and I'll clean up locally and create the tag."
 
 ---
 
-## Step 7 — Confirm and push
+## Step 7 — Local cleanup and tagging
 
-Show the user a summary:
+Wait for the user to confirm both PRs are merged. Then:
 
-```
-Release <version> is ready locally:
-  - master: merged and tagged <version>
-  - develop: merged with version bump
-  - Tag: <version>
-```
-
-Ask: "Ready to push? This will push master, develop, and tags to origin."
-
-If the user confirms, run:
+Pull the updated branches:
 
 ```bash
-git push origin master && git push origin develop && git push --tags
+git checkout master && git pull origin master
+git checkout develop && git pull origin develop
 ```
 
-Report success or any errors. If the push fails, no local changes are lost — the user can retry with the same command.
+Delete the local release branch (the remote was deleted by GitHub on merge):
+
+```bash
+git branch -d release/<version>
+```
+
+Create the version tag on the master merge commit and push it:
+
+```bash
+git tag <version> master
+git push origin <version>
+```
+
+Show the user a final summary:
+
+```
+Release <version> complete:
+  - master: updated and tagged <version>
+  - develop: back-merged
+  - Local release branch: deleted
+  - Tag <version>: pushed to origin
+```
 
 ---
 
 ## If something goes wrong
 
-At any point the user can undo local changes:
-
-- **Before `git flow release finish`**: delete the release branch and the release is fully undone:
+- **Before the PRs are merged**: close both PRs on GitHub, then delete the remote and local release branch:
   ```bash
-  git checkout develop
+  git push origin --delete release/<version>
   git branch -D release/<version>
   ```
-- **After `git flow release finish` but before pushing**: the local state is committed but nothing is on the remote yet. The user should contact a team member before force-resetting, as it involves rewriting local history on master.
-- **After pushing**: revert is complex and team coordination is required. Advise the user to open a discussion with the team.
+  The release is fully undone with no impact on master or develop.
+
+- **After master PR merges but before develop PR**: merge the develop PR (or resolve conflicts and merge). Do not skip the back-merge — develop must stay in sync with master.
+
+- **After both PRs merge**: the release is complete. If you need to undo it, a revert commit on master is the safest path. Team coordination is required.
