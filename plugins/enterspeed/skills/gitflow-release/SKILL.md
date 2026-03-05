@@ -1,6 +1,5 @@
 ---
 name: gitflow-release
-version: 1.5.0
 description: Automate git flow releases for Enterspeed projects. Use when the user says "release", "cut a release", "start a release", "git flow release", or "bump the version".
 ---
 
@@ -62,7 +61,16 @@ Parse `majorVersion`, `minorVersion`, and `patchVersion`. The current version is
 
 ---
 
-## Step 2 — Propose version bump
+## Step 2 — Pull latest and propose version bump
+
+Pull the latest changes from both branches before inspecting commits:
+
+```bash
+git checkout master && git pull origin master
+git checkout develop && git pull origin develop
+```
+
+If either command fails, stop and report the error. Do not continue until the user resolves it.
 
 Find the most recent tag:
 
@@ -124,18 +132,7 @@ Validate any user-provided version matches the pattern `N.N.N` before continuing
 
 ---
 
-## Step 3 — Pull latest master and develop
-
-```bash
-git checkout master && git pull origin master
-git checkout develop && git pull origin develop
-```
-
-If either command fails, stop and report the error. Do not continue until the user resolves it.
-
----
-
-## Step 4 — Start release branch
+## Step 3 — Start release branch
 
 Check whether the release branch already exists:
 
@@ -144,7 +141,7 @@ git branch --list "release/<version>"
 ```
 
 If it returns output, stop and tell the user:
-> "A release branch for `<version>` already exists locally. Delete it with `git branch -D release/<version>` if you want to start fresh, or switch to it and continue from Step 5."
+> "A release branch for `<version>` already exists locally. Delete it with `git branch -D release/<version>` if you want to start fresh, or switch to it and continue from Step 4."
 
 Otherwise, start the branch:
 
@@ -156,7 +153,7 @@ This creates and checks out `release/<version>` from `develop`. If it fails, sto
 
 ---
 
-## Step 5 — Update pipeline file and commit
+## Step 4 — Update pipeline file and commit
 
 Split `<version>` into components and export them as shell variables, then run the update script using those variables — no manual placeholder replacement needed:
 
@@ -191,7 +188,7 @@ git commit -m "Bump version to <version>"
 
 ---
 
-## Step 6 — Push release branch and open PRs
+## Step 5 — Push release branch and open PRs
 
 Push the release branch:
 
@@ -230,7 +227,7 @@ DEVELOP_PR_NUMBER=$(basename "$DEVELOP_PR_URL")
 echo "Develop PR: $DEVELOP_PR_URL (number: $DEVELOP_PR_NUMBER)"
 ```
 
-Store both PR numbers — they are needed in Step 7. Show the user both URLs, then say:
+Store both PR numbers — they are needed in Step 6. Show the user both URLs, then say:
 > "Two PRs are open:
 > - **Master PR**: `$MASTER_PR_URL`
 > - **Develop PR**: `$DEVELOP_PR_URL`
@@ -241,9 +238,9 @@ Wait for the user to reply that both PRs are merged before continuing.
 
 ---
 
-## Step 7 — Local cleanup and tagging
+## Step 6 — Local cleanup and tagging
 
-Wait for the user to confirm both PRs are merged. Before proceeding, verify using the PR numbers captured in Step 6:
+Wait for the user to confirm both PRs are merged. Before proceeding, verify using the PR numbers captured in Step 5:
 
 ```bash
 gh pr view "$MASTER_PR_NUMBER" --json state --jq '.state'
@@ -260,10 +257,10 @@ git checkout master && git pull origin master
 git checkout develop && git pull origin develop
 ```
 
-Delete the local release branch (the remote is deleted by GitHub on merge):
+Delete the local release branch (the remote is deleted by GitHub on merge). Use `-D` since the branch was merged via GitHub PRs and git may not recognise it as fully merged locally:
 
 ```bash
-git branch -d release/<version>
+git branch -D release/<version>
 ```
 
 Check that the tag does not already exist before creating it:
