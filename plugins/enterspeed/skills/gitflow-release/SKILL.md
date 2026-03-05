@@ -1,12 +1,12 @@
 ---
 name: gitflow-release
-version: 1.2.0
-description: Automate git flow releases for Enterspeed projects. Use when the user says "release", "cut a release", "start a release", "git flow release", or "bump the version". Reads version from azure-pipeline.yaml, proposes a semantic bump from git log, and runs the full git flow release cycle.
+version: 1.3.0
+description: Automate git flow releases for Enterspeed projects. Use when the user says "release", "cut a release", "start a release", "git flow release", or "bump the version".
 ---
 
 # Git Flow Release
 
-Automates the full git flow release process: reads the current semantic version from `azure-pipeline.yaml`, proposes a version bump based on unreleased commits, runs the git flow release cycle, updates the pipeline version, and asks to push.
+Automates the full git flow release process: reads the current semantic version from `azure-pipeline.yaml`, proposes a version bump based on unreleased commits, creates a release branch, updates the pipeline version, opens PRs to master and develop, then cleans up locally and tags after both PRs merge.
 
 > **Stop on any error** — if any step fails unexpectedly, report the full error output to the user and do not proceed to the next step.
 
@@ -14,16 +14,16 @@ Automates the full git flow release process: reads the current semantic version 
 
 ## Prerequisites check
 
-Before starting, verify that git flow is installed:
+Verify git flow is installed:
 
 ```bash
 git flow version
 ```
 
-If git flow is not installed, stop and tell the user:
+If not installed, stop and tell the user:
 > "git flow is not installed. Install it with `brew install git-flow-avh` and run `git flow init` in your project first."
 
-Verify that git flow has been initialized in the repo:
+Verify git flow has been initialized:
 
 ```bash
 git flow config
@@ -31,37 +31,48 @@ git flow config
 
 If it fails, stop and tell the user to run `git flow init` first.
 
+Verify the working directory is clean:
+
+```bash
+git status --porcelain
+```
+
+If there is any output, stop and tell the user:
+> "There are uncommitted changes in your working directory. Please commit or stash them before starting a release."
+
 ---
 
-## Step 1 — Read current version
+## Step 1 — Find pipeline file and read current version
 
-Find `azure-pipeline.yaml` in the current working directory:
+Find `azure-pipeline.yaml` (or `azure-pipelines.yaml`):
 
 ```bash
 ls azure-pipeline.yaml 2>/dev/null || ls azure-pipelines.yaml 2>/dev/null
 ```
 
-If not found, ask the user: "I couldn't find azure-pipeline.yaml in the current directory. What is the path to your pipeline file?"
+Store the found filename as `PIPELINE_FILE` and use it consistently in all subsequent steps. If neither file is found, ask the user for the path.
 
-Extract the three version variables:
+Extract the three version variables from `$PIPELINE_FILE`:
 
 ```bash
-grep -E '^\s*(majorVersion|minorVersion|patchVersion):' azure-pipeline.yaml
+grep -E '^\s*(majorVersion|minorVersion|patchVersion):' "$PIPELINE_FILE"
 ```
 
-Parse the values of `majorVersion`, `minorVersion`, and `patchVersion` from the output. The current version is `{major}.{minor}.{patch}`.
+Parse `majorVersion`, `minorVersion`, and `patchVersion`. The current version is `{major}.{minor}.{patch}`.
 
 ---
 
 ## Step 2 — Propose version bump
 
-Find the most recent semver tag:
+Find the most recent tag:
 
 ```bash
 git describe --tags --abbrev=0 2>/dev/null || echo "no-tags"
 ```
 
-If a tag exists, list real commits (excluding merges) since that tag:
+Tags follow plain semver format without a `v` prefix (e.g. `1.53.0`, not `v1.53.0`).
+
+List real commits (excluding merges) since the last tag:
 
 ```bash
 git log <last-tag>..HEAD --no-merges --oneline
@@ -73,19 +84,19 @@ If no tags exist, list the most recent commits:
 git log --no-merges --oneline -20
 ```
 
-Analyze the commit messages and determine the suggested bump:
+Determine the suggested bump from commit messages:
 
 - Any message containing `BREAKING CHANGE`, `feat!`, or `fix!` → **major** bump
 - Any message starting with `feat:` or `feat(` → **minor** bump
 - All other commits → **patch** bump
 
-Apply the highest-priority bump found. Calculate the proposed new version:
+Apply the highest-priority bump found:
 
 - **major**: `{major+1}.0.0`
 - **minor**: `{major}.{minor+1}.0`
 - **patch**: `{major}.{minor}.{patch+1}`
 
-Present the unreleased commits and proposed version to the user:
+Present the commits and proposed version:
 
 ```
 Current version: 1.52.2
@@ -97,9 +108,9 @@ Unreleased commits:
 Proposed bump: minor → 1.53.0
 ```
 
-Ask: "Should I proceed with version `1.53.0`, or would you like a different version?"
+Ask: "Should I proceed with version `1.53.0`, or would you like a different version? (Must be semver format: `MAJOR.MINOR.PATCH`)"
 
-Wait for the user to confirm or provide an alternative version. Use their answer as `<version>` for all subsequent steps.
+Validate any user-provided version matches the pattern `N.N.N` before continuing. Use the confirmed version as `<version>` for all subsequent steps.
 
 ---
 
@@ -110,7 +121,7 @@ git checkout master && git pull origin master
 git checkout develop && git pull origin develop
 ```
 
-If either command fails (e.g. uncommitted changes, merge conflicts), stop and report the error. Do not continue until the user resolves it.
+If either command fails, stop and report the error. Do not continue until the user resolves it.
 
 ---
 
@@ -124,36 +135,36 @@ This creates and checks out `release/<version>` from `develop`. If it fails, sto
 
 ---
 
-## Step 5 — Update azure-pipeline.yaml and commit
+## Step 5 — Update pipeline file and commit
 
-Split `<version>` into its three components (e.g. `1.53.0` → major=1, minor=53, patch=0).
-
-Update the three variables in `azure-pipeline.yaml` using multiline-aware regex to handle any indentation or spacing:
+Split `<version>` into components and export them as shell variables, then run the update script using those variables — no manual placeholder replacement needed:
 
 ```bash
-python3 -c "
-import re
-content = open('azure-pipeline.yaml').read()
-content = re.sub(r'^(\s*majorVersion:\s*)\d+', r'\g<1><MAJOR>', content, flags=re.MULTILINE)
-content = re.sub(r'^(\s*minorVersion:\s*)\d+', r'\g<1><MINOR>', content, flags=re.MULTILINE)
-content = re.sub(r'^(\s*patchVersion:\s*)\d+', r'\g<1><PATCH>', content, flags=re.MULTILINE)
-open('azure-pipeline.yaml', 'w').write(content)
-print('Updated azure-pipeline.yaml to <MAJOR>.<MINOR>.<PATCH>')
-"
+MAJOR=<major> MINOR=<minor> PATCH=<patch> python3 -c "
+import re, os
+major = os.environ['MAJOR']
+minor = os.environ['MINOR']
+patch = os.environ['PATCH']
+pipeline_file = os.environ.get('PIPELINE_FILE', 'azure-pipeline.yaml')
+content = open(pipeline_file).read()
+content = re.sub(r'^(\s*majorVersion:\s*)\d+', r'\g<1>' + major, content, flags=re.MULTILINE)
+content = re.sub(r'^(\s*minorVersion:\s*)\d+', r'\g<1>' + minor, content, flags=re.MULTILINE)
+content = re.sub(r'^(\s*patchVersion:\s*)\d+', r'\g<1>' + patch, content, flags=re.MULTILINE)
+open(pipeline_file, 'w').write(content)
+print(f'Updated {pipeline_file} to {major}.{minor}.{patch}')
+" PIPELINE_FILE="$PIPELINE_FILE"
 ```
 
-Replace `<MAJOR>`, `<MINOR>`, `<PATCH>` with the actual numeric values before running.
-
-Verify the change looks correct before committing:
+Substitute the actual numeric values of `<major>`, `<minor>`, `<patch>` before running. Verify the result:
 
 ```bash
-grep -E '^\s*(majorVersion|minorVersion|patchVersion):' azure-pipeline.yaml
+grep -E '^\s*(majorVersion|minorVersion|patchVersion):' "$PIPELINE_FILE"
 ```
 
-If the values are not what you expect, stop and report the discrepancy to the user. Otherwise commit:
+If the values are wrong, stop and report the discrepancy. Otherwise commit:
 
 ```bash
-git add azure-pipeline.yaml
+git add "$PIPELINE_FILE"
 git commit -m "Bump version to <version>"
 ```
 
@@ -161,47 +172,54 @@ git commit -m "Bump version to <version>"
 
 ## Step 6 — Push release branch and open PRs
 
-Push the release branch to origin:
+Push the release branch:
 
 ```bash
 git push origin release/<version>
 ```
 
-Then open two pull requests using the GitHub CLI:
+Open two pull requests:
 
 **PR 1 — release → master** (the production merge):
 ```bash
 gh pr create \
   --base master \
-  --head release/<version> \
+  --head "release/<version>" \
   --title "Release <version>" \
-  --body "## Release <version>
+  --body "$(cat <<'EOF'
+## Release <version>
 
-Bumps version to \`<version>\` in \`azure-pipeline.yaml\`.
+Bumps version to `<version>` in `azure-pipeline.yaml`.
 
 ### Checklist
-- [ ] Version variables updated correctly in \`azure-pipeline.yaml\`
+- [ ] Version variables updated correctly in `azure-pipeline.yaml`
 - [ ] CI passes on the release branch
-- [ ] Reviewed and approved"
+- [ ] Reviewed and approved
+EOF
+)"
 ```
 
 **PR 2 — release → develop** (the back-merge):
 ```bash
 gh pr create \
   --base develop \
-  --head release/<version> \
+  --head "release/<version>" \
   --title "Back-merge release <version> into develop" \
   --body "Merges release branch back into develop after the \`<version>\` release."
 ```
 
-Show the user both PR URLs and tell them:
-> "Two PRs are open. Merge the **master PR first**, then the **develop PR**. Come back here once both are merged and I'll clean up locally and create the tag."
+Show the user both PR URLs, then say:
+> "Two PRs are open:
+> - **Master PR**: `<master-pr-url>`
+> - **Develop PR**: `<develop-pr-url>`
+>
+> Merge the **master PR first**, then the **develop PR**. Reply here when both are merged and I'll clean up locally and create the release tag."
+
+Wait for the user to reply that both PRs are merged before continuing.
 
 ---
 
 ## Step 7 — Local cleanup and tagging
-
-Wait for the user to confirm both PRs are merged. Then:
 
 Pull the updated branches:
 
@@ -210,16 +228,22 @@ git checkout master && git pull origin master
 git checkout develop && git pull origin develop
 ```
 
-Delete the local release branch (the remote was deleted by GitHub on merge):
+Delete the local release branch (the remote is deleted by GitHub on merge):
 
 ```bash
 git branch -d release/<version>
 ```
 
-Create the version tag on the master merge commit and push it:
+Check that the tag does not already exist before creating it:
 
 ```bash
-git tag <version> master
+git tag -l "<version>"
+```
+
+If the tag already exists, tell the user and skip tag creation. Otherwise, tag the current master HEAD and push:
+
+```bash
+git tag <version> $(git rev-parse master)
 git push origin <version>
 ```
 
@@ -244,6 +268,6 @@ Release <version> complete:
   ```
   The release is fully undone with no impact on master or develop.
 
-- **After master PR merges but before develop PR**: merge the develop PR (or resolve conflicts and merge). Do not skip the back-merge — develop must stay in sync with master.
+- **After master PR merges but before develop PR**: do not skip the back-merge. Merge the develop PR (resolving any conflicts in GitHub if needed) — develop must stay in sync with master.
 
 - **After both PRs merge**: the release is complete. If you need to undo it, a revert commit on master is the safest path. Team coordination is required.
