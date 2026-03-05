@@ -13,20 +13,23 @@ recent Shortcut stories into a structured demo plan and polished slide deck.
 
 ## Step 1: Fetch Stories
 
-Follow the **shortcut-summarizer** skill to fetch stories.
-
-Default parameters for demo planning:
+Call the **shortcut-summarizer** skill with these parameters:
 - `--weeks 4`
 - `--state done`
 - `--owner me`
 
 Override based on what the user says. Save output to `/tmp/shortcut_stories.json`.
 
+If the fetch fails (token not set, API error, or empty result), stop and tell the user:
+- Token not set → run the **shortcut-setup** skill first
+- API error → show the error message and suggest checking the token or trying again
+- No stories found → suggest widening the time range or checking the state filter
+
 ---
 
 ## Step 2: Build the Demo Plan
 
-Read `/tmp/shortcut_stories.json` and produce a demo plan in chat before generating slides. Structure it as:
+Read `/tmp/shortcut_stories.json` and produce a demo plan **in chat** (not as a file) before generating slides. If fewer than 3 non-chore stories are found, tell the user and ask if they want to proceed anyway or widen the filter. Structure the plan as:
 
 ### Grouping logic (in priority order)
 1. **By epic** — if most stories have an `epic_id`, group by epic
@@ -61,12 +64,16 @@ Skipping (suggest omitting from demo):
 
 Ask the user: "Does this order look right? Anything to add, remove, or reorder?"
 
+**Wait for the user to confirm before proceeding to Step 3.** Do not generate slides until the demo plan is approved.
+
 ---
 
 ## Step 3: Generate the Presentation
 
-Once the user confirms (or after making adjustments), follow the
-**revealjs-presentation** skill to generate the slide deck.
+Once the user confirms the demo plan (or after making adjustments), follow the
+**revealjs-presentation** skill to generate the slide deck. Pass the confirmed
+story list and talking points from Step 2 as the structured input — do not
+re-fetch or re-summarize.
 
 ### Slide structure for a demo deck:
 

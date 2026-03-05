@@ -38,12 +38,12 @@ This matches the Engineering space in the Shortcut UI at:
 
 ## Step 2: Run the Fetch Script
 
-The fetch script lives at `scripts/fetch_stories.py`. Copy it to a writable
-location (note: `/tmp` may not be writable in all environments — use a path
-under `/sessions/<session>/` instead) and run it:
+The fetch script lives at `scripts/fetch_stories.py` inside this skill's directory. Copy it to a writable location (note: `/tmp` may not be writable in all environments — use a path under `/sessions/<session>/` instead) and run it:
+
+Before running: if `SHORTCUT_API_TOKEN` is not set in the environment, the script will fail. Run the **shortcut-setup** skill first to configure it.
 
 ```bash
-cp <skill-path>/scripts/fetch_stories.py /sessions/<session>/fetch_stories.py
+cp <path-to-this-skill>/scripts/fetch_stories.py /sessions/<session>/fetch_stories.py
 
 SHORTCUT_API_TOKEN="..." python3 /sessions/<session>/fetch_stories.py \
   --weeks <N> \
@@ -80,7 +80,9 @@ storing and auto-loading the token via 1Password.
 
 ## Step 3: Present the Summary
 
-Read the output JSON and display in chat:
+If the script exits with a non-zero status or the output is not valid JSON, display the error message and suggest troubleshooting steps (check token, verify filters, re-run with `--with-details` omitted).
+
+**When called directly by the user**, display in chat:
 
 - Header: "Found N stories — [owner], [group if set], [iteration if set], state: [state]"
 - Group by epic if `epic_id` is present, otherwise flat list
@@ -90,6 +92,8 @@ Read the output JSON and display in chat:
 Keep it scannable. Descriptions are preserved in the JSON for downstream skills.
 When the user asks for a detailed summary of each story, fetch full story details
 via `GET /stories/{id}` for any stories that have an empty description in the JSON.
+
+**When called as a dependency by another skill** (e.g. shortcut-demo-planner), return the raw JSON output for that skill to process — skip the formatted chat summary.
 
 ---
 

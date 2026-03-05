@@ -17,13 +17,13 @@ Expect either:
 - A structured outline passed directly (e.g. from shortcut-demo-planner)
 - A freeform description of what the slides should contain
 
-Always clarify before generating if the content is ambiguous.
+Generate immediately for concrete requests. Clarify only if the content is genuinely unclear (e.g. the audience is unknown, the scope doesn't make sense, or key topics are missing).
 
 ---
 
 ## Output
 
-A single `/tmp/presentation.html` file using Reveal.js from CDN.
+A single self-contained HTML file using Reveal.js from CDN, written directly to the output path (see Delivery section).
 
 ---
 
@@ -39,7 +39,7 @@ Use this base structure and fill in slides:
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{TITLE}}</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/reveal.min.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/theme/{{THEME}}.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/theme/{{THEME}}.min.css" /><!-- Default: moon -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
   <style>
     /* Custom overrides go here */
@@ -147,7 +147,7 @@ Default to `moon` for technical/dev content.
 
 - **Dark opening and closing slides**, lighter content slides ("sandwich")
 - **One idea per slide** — don't cram bullets
-- **Speaker notes on every story slide** — what to say, what to click, what to highlight
+- **Speaker notes on every story slide** — what to say, what to click, what to highlight. Section dividers and summary/closing slides do not require notes unless there is something specific to say.
 - **Section dividers** between thematic groups
 - Use the `.tag` CSS class for labels, epics, or story types
 - Avoid walls of text — if a description is long, distil to 2–3 bullet points
@@ -156,7 +156,8 @@ Default to `moon` for technical/dev content.
 
 ## Delivery
 
-1. Write the full HTML to `/tmp/presentation.html`
-2. Copy to `/mnt/user-data/outputs/presentation.html`
-3. Use `present_files` to share it with the user
-4. Tell the user: open in browser, use arrow keys to navigate, `S` for speaker notes
+1. Write the full HTML directly to `/mnt/user-data/outputs/presentation.html`
+2. Use `present_files` to share it with the user
+3. Tell the user: open in browser, use arrow keys to navigate, `S` for speaker notes
+
+Note: CDN links are pinned to Reveal.js 4.6.1 intentionally for stability.
