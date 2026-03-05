@@ -76,6 +76,9 @@ Extract the three version variables from `$PIPELINE_FILE`:
 grep -E '^\s*(majorVersion|minorVersion|patchVersion):' "$PIPELINE_FILE"
 ```
 
+Verify that all three keys were found. If any are missing, stop and tell the user:
+> "Could not find `majorVersion`, `minorVersion`, or `patchVersion` in `$PIPELINE_FILE`. Check that the file follows the expected format."
+
 Parse `majorVersion`, `minorVersion`, and `patchVersion`. The current version is `{major}.{minor}.{patch}`.
 
 ---
@@ -233,7 +236,7 @@ Bumps version to \`<version>\` in \`$PIPELINE_FILE\`.
 - [ ] CI passes on the release branch
 - [ ] Reviewed and approved" \
   --json url --jq '.url')
-MASTER_PR_NUMBER=$(basename "$MASTER_PR_URL")
+MASTER_PR_NUMBER=$(echo "$MASTER_PR_URL" | grep -oE '[0-9]+$')
 echo "Master PR: $MASTER_PR_URL"
 ```
 
@@ -245,7 +248,7 @@ DEVELOP_PR_URL=$(gh pr create \
   --title "Back-merge release <version> into develop" \
   --body "Merges release branch back into develop after the <version> release." \
   --json url --jq '.url')
-DEVELOP_PR_NUMBER=$(basename "$DEVELOP_PR_URL")
+DEVELOP_PR_NUMBER=$(echo "$DEVELOP_PR_URL" | grep -oE '[0-9]+$')
 echo "Develop PR: $DEVELOP_PR_URL"
 ```
 

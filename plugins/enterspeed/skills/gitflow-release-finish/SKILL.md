@@ -35,7 +35,7 @@ gh pr view <develop-pr-number> --json state --jq '.state'
 ```
 
 Both must return `MERGED`. If either returns `OPEN` or `CLOSED`, stop and tell the user:
-> "PR #`<number>` doesn't appear to be merged yet. Please merge it on GitHub and let me know when done."
+> "PR #`<number>` is not merged. Merge it on GitHub and run this skill again."
 
 ---
 
@@ -62,13 +62,30 @@ git branch -D release/<version>
 
 ## Step 4 — Tag and push
 
+Confirm you are on master before tagging:
+
+```bash
+git rev-parse --abbrev-ref HEAD
+```
+
+If the output is not `master`, run `git checkout master` first.
+
 Check that the tag does not already exist:
 
 ```bash
 git tag -l "<version>"
 ```
 
-If the tag already exists, tell the user and skip tag creation. Otherwise, tag the master HEAD and push:
+If the tag already exists, do not skip silently — first verify it points to the correct commit:
+
+```bash
+git show <version> --oneline
+```
+
+If it points to the expected master HEAD, it is safe to proceed to push it. If it points to a different commit, stop and tell the user:
+> "Tag `<version>` already exists but points to an unexpected commit. Investigate before proceeding — do not overwrite the tag."
+
+Otherwise (tag does not exist), create and push it:
 
 ```bash
 git tag <version> $(git rev-parse master)
