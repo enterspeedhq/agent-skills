@@ -1,6 +1,6 @@
 ---
 name: gitflow-release
-version: 1.4.0
+version: 1.5.0
 description: Automate git flow releases for Enterspeed projects. Use when the user says "release", "cut a release", "start a release", "git flow release", or "bump the version".
 ---
 
@@ -88,10 +88,16 @@ If no commits are found since the last tag, tell the user:
 > "No commits found since the last release. There may be nothing to release. Should I still proceed with a patch bump, or skip the release?"
 Stop and wait for their answer before continuing.
 
-Determine the suggested bump from commit messages:
+Determine the suggested bump following [Conventional Commits](https://www.conventionalcommits.org/). Check commit subjects (the `--oneline` output) and also run a full log to catch `BREAKING CHANGE` in commit footers:
 
-- Any message containing `BREAKING CHANGE`, `feat!`, or `fix!` → **major** bump
-- Any message starting with `feat:` or `feat(` → **minor** bump
+```bash
+git log <last-tag>..HEAD --no-merges --format="%B"
+```
+
+Bump rules (highest priority wins):
+
+- Subject contains `!` (e.g. `feat!:`, `fix!:`) OR any commit body/footer contains `BREAKING CHANGE:` → **major** bump
+- Subject starts with `feat:` or `feat(` → **minor** bump
 - All other commits → **patch** bump
 
 Apply the highest-priority bump found:
@@ -130,6 +136,17 @@ If either command fails, stop and report the error. Do not continue until the us
 ---
 
 ## Step 4 — Start release branch
+
+Check whether the release branch already exists:
+
+```bash
+git branch --list "release/<version>"
+```
+
+If it returns output, stop and tell the user:
+> "A release branch for `<version>` already exists locally. Delete it with `git branch -D release/<version>` if you want to start fresh, or switch to it and continue from Step 5."
+
+Otherwise, start the branch:
 
 ```bash
 git flow release start <version>
@@ -182,11 +199,11 @@ Push the release branch:
 git push origin release/<version>
 ```
 
-Open two pull requests. Substitute the actual version string for `<version>` in each command before running:
+Open two pull requests. Substitute the actual version string for `<version>` in each command before running. Capture the returned URL to extract the PR number.
 
 **PR 1 — release → master** (the production merge):
 ```bash
-gh pr create \
+MASTER_PR_URL=$(gh pr create \
   --base master \
   --head "release/<version>" \
   --title "Release <version>" \
@@ -197,22 +214,26 @@ Bumps version to \`<version>\` in \`$PIPELINE_FILE\`.
 ### Checklist
 - [ ] Version variables updated correctly in \`$PIPELINE_FILE\`
 - [ ] CI passes on the release branch
-- [ ] Reviewed and approved"
+- [ ] Reviewed and approved")
+MASTER_PR_NUMBER=$(basename "$MASTER_PR_URL")
+echo "Master PR: $MASTER_PR_URL (number: $MASTER_PR_NUMBER)"
 ```
 
 **PR 2 — release → develop** (the back-merge):
 ```bash
-gh pr create \
+DEVELOP_PR_URL=$(gh pr create \
   --base develop \
   --head "release/<version>" \
   --title "Back-merge release <version> into develop" \
-  --body "Merges release branch back into develop after the <version> release."
+  --body "Merges release branch back into develop after the <version> release.")
+DEVELOP_PR_NUMBER=$(basename "$DEVELOP_PR_URL")
+echo "Develop PR: $DEVELOP_PR_URL (number: $DEVELOP_PR_NUMBER)"
 ```
 
-Show the user both PR URLs, then say:
+Store both PR numbers — they are needed in Step 7. Show the user both URLs, then say:
 > "Two PRs are open:
-> - **Master PR**: `<master-pr-url>`
-> - **Develop PR**: `<develop-pr-url>`
+> - **Master PR**: `$MASTER_PR_URL`
+> - **Develop PR**: `$DEVELOP_PR_URL`
 >
 > Merge the **master PR first**, then the **develop PR**. Reply here when both are merged and I'll clean up locally and create the release tag."
 
@@ -222,11 +243,11 @@ Wait for the user to reply that both PRs are merged before continuing.
 
 ## Step 7 — Local cleanup and tagging
 
-Wait for the user to confirm both PRs are merged. Before proceeding, verify both are actually merged using the PR numbers returned in Step 6:
+Wait for the user to confirm both PRs are merged. Before proceeding, verify using the PR numbers captured in Step 6:
 
 ```bash
-gh pr view <master-pr-number> --json state --jq '.state'
-gh pr view <develop-pr-number> --json state --jq '.state'
+gh pr view "$MASTER_PR_NUMBER" --json state --jq '.state'
+gh pr view "$DEVELOP_PR_NUMBER" --json state --jq '.state'
 ```
 
 Both must return `MERGED`. If either returns `OPEN` or `CLOSED`, tell the user and stop:
