@@ -1,6 +1,6 @@
 ---
 name: gitflow-release-prepare
-version: 1.0.0
+version: 1.1.0
 description: Analyse unreleased commits and propose a semantic version bump for an Enterspeed project. Use when the user says "prepare a release", "what should the next version be", "check what's unreleased", or "propose a version bump". Run this before gitflow-release-start to review the proposed version before any changes are made.
 ---
 
@@ -10,42 +10,9 @@ Reads the current version from `azure-pipeline.yaml`, pulls the latest branches,
 
 ---
 
-## Prerequisites check
+## Prerequisites
 
-Verify git flow is installed:
-
-```bash
-git flow version
-```
-
-If not installed, stop and tell the user:
-> "git flow is not installed. Install it with `brew install git-flow-avh` and run `git flow init` in your project first."
-
-Verify git flow has been initialized:
-
-```bash
-git flow config
-```
-
-If it fails, stop and tell the user to run `git flow init` first.
-
-Verify the working directory is clean:
-
-```bash
-git status --porcelain
-```
-
-If there is any output, stop and tell the user:
-> "There are uncommitted changes in your working directory. Please commit or stash them before preparing a release."
-
-Verify you are not in detached HEAD state:
-
-```bash
-git symbolic-ref -q HEAD
-```
-
-If this fails, stop and tell the user:
-> "You are in detached HEAD state. Check out a branch (e.g. `git checkout develop`) before preparing a release."
+Run the **gitflow-prerequisites** skill first. If any check fails, stop — do not continue.
 
 ---
 

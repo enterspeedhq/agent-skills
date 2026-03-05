@@ -1,6 +1,6 @@
 ---
 name: gitflow-release-start
-version: 1.2.0
+version: 1.3.0
 description: Start a git flow release for an Enterspeed project: creates the release branch, updates azure-pipeline.yaml, and commits. Use when the user says "start the release", "create the release branch", or provides a confirmed version (e.g. "start release 1.53.0"). Run gitflow-release-prepare first to determine the version. Follow up with gitflow-release-publish to push and open PRs.
 ---
 
@@ -20,51 +20,9 @@ If the user hasn't run **gitflow-release-prepare** yet, suggest they do so first
 
 ---
 
-## Prerequisites check
+## Prerequisites
 
-Verify git flow is installed:
-
-```bash
-git flow version
-```
-
-If not installed, stop and tell the user:
-> "git flow is not installed. Install it with `brew install git-flow-avh` and run `git flow init` in your project first."
-
-Verify git flow has been initialized:
-
-```bash
-git flow config
-```
-
-If it fails, stop and tell the user to run `git flow init` first.
-
-Verify git user identity is configured:
-
-```bash
-git config user.name && git config user.email
-```
-
-If either fails, stop and tell the user:
-> "Git user identity is not configured. Set it with `git config user.name 'Your Name'` and `git config user.email 'you@enterspeed.com'`."
-
-Verify the working directory is clean:
-
-```bash
-git status --porcelain
-```
-
-If there is any output, stop and tell the user:
-> "There are uncommitted changes in your working directory. Please commit or stash them before starting a release."
-
-Verify you are not in detached HEAD state:
-
-```bash
-git symbolic-ref -q HEAD
-```
-
-If this fails, stop and tell the user:
-> "You are in detached HEAD state. Check out a branch (e.g. `git checkout develop`) before starting a release."
+Run the **gitflow-prerequisites** skill first. If any check fails, stop — do not continue.
 
 ---
 
