@@ -1,12 +1,12 @@
 ---
 name: gitflow-release-finish
-version: 1.1.0
-description: Finish a git flow release after both PRs are merged: verifies PR state, pulls master and develop, deletes the local release branch, creates and pushes the version tag. Use when the user says "finish the release", "both PRs are merged", "release is merged", or "tag the release". Always run after gitflow-release-start.
+version: 1.2.0
+description: Finish a git flow release after both PRs are merged: verifies PR state, pulls master and develop, deletes the local release branch, creates and pushes the version tag. Use when the user says "finish the release", "both PRs are merged", "release is merged", or "tag the release". Always run after gitflow-release-publish.
 ---
 
 # Git Flow Release — Finish
 
-Completes the release after the master and develop PRs (opened by **gitflow-release-start**) have been merged. Verifies both are merged, syncs local branches, deletes the release branch, and pushes the version tag.
+Completes the release after the master and develop PRs (opened by **gitflow-release-publish**) have been merged. Verifies both are merged, syncs local branches, deletes the release branch, and pushes the version tag.
 
 > **Stop on any error** — if any step fails unexpectedly, report the full error output to the user and do not proceed to the next step.
 
@@ -16,7 +16,7 @@ Completes the release after the master and develop PRs (opened by **gitflow-rele
 
 Ask the user for:
 - The **version** that was released (e.g. `1.53.0`)
-- The **master PR number** and **develop PR number** from the gitflow-release-start output
+- The **master PR number** and **develop PR number** from the gitflow-release-publish output
 
 ---
 
@@ -135,3 +135,4 @@ Release <version> complete:
 
 - **After both PRs merge**: the release is complete. If you need to undo it, a revert commit on master is the safest path. Team coordination is required.
 - **Tag push fails**: check that you have push access and the tag doesn't already exist on the remote (`git ls-remote --tags origin <version>`).
+- **Tag pushed incorrectly**: to delete a pushed tag, run `git push origin --delete <version>` and recreate it on the correct commit.

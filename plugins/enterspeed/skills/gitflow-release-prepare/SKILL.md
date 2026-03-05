@@ -38,6 +38,15 @@ git status --porcelain
 If there is any output, stop and tell the user:
 > "There are uncommitted changes in your working directory. Please commit or stash them before preparing a release."
 
+Verify you are not in detached HEAD state:
+
+```bash
+git symbolic-ref -q HEAD
+```
+
+If this fails, stop and tell the user:
+> "You are in detached HEAD state. Check out a branch (e.g. `git checkout develop`) before preparing a release."
+
 ---
 
 ## Step 1 — Find pipeline file and read current version
@@ -48,7 +57,7 @@ Find `azure-pipeline.yaml` (or `azure-pipelines.yaml`):
 ls azure-pipeline.yaml 2>/dev/null || ls azure-pipelines.yaml 2>/dev/null
 ```
 
-Store the found filename as `PIPELINE_FILE`. If neither file is found, ask the user for the path.
+Store the found filename as `PIPELINE_FILE`. If neither file is found, ask the user for the path. Verify the user-provided path exists before continuing.
 
 Extract the three version variables:
 
@@ -139,7 +148,7 @@ Proposed bump: minor → 1.53.0
 
 Ask: "Should I proceed with version `1.53.0`, or would you like a different version? (Must be `MAJOR.MINOR.PATCH`)"
 
-Validate any user-provided version matches the pattern `N.N.N` before confirming.
+Validate any user-provided version matches the pattern `N.N.N`. If the format is invalid, reject it and re-prompt.
 
 Once confirmed, tell the user:
 
