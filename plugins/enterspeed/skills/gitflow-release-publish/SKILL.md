@@ -1,6 +1,6 @@
 ---
 name: gitflow-release-publish
-version: 1.0.0
+version: 1.1.0
 description: Push a prepared git flow release branch and open PRs to master and develop. Use when the user says "publish the release", "push the release branch", "open the PRs", or after gitflow-release-start completes. Requires the release branch to already exist locally with the version commit. Follow up with gitflow-release-finish once both PRs are merged.
 ---
 
@@ -14,7 +14,7 @@ Pushes the local release branch to GitHub and opens two PRs: one to master (prod
 
 ## Input
 
-Ask the user for the version being released (e.g. `1.53.0`). Validate it matches the pattern `N.N.N` before continuing. Use this as `<version>` for all subsequent steps.
+Ask the user for the version being released (e.g. `1.53.0`). Validate it matches `N.N.N` (digits only, no `v` prefix) — reject and re-prompt if invalid. Use this as `<version>` for all subsequent steps.
 
 ---
 
@@ -58,7 +58,9 @@ Find the pipeline file name to reference in the PR body:
 ls azure-pipeline.yaml 2>/dev/null || ls azure-pipelines.yaml 2>/dev/null
 ```
 
-Store as `PIPELINE_FILE`. Open the production merge PR:
+Store as `PIPELINE_FILE`. If neither file is found, set `PIPELINE_FILE` to `azure-pipeline.yaml` as a fallback (the file was already updated by gitflow-release-start, so this is for display only).
+
+Open the production merge PR:
 
 ```bash
 MASTER_PR_URL=$(gh pr create \

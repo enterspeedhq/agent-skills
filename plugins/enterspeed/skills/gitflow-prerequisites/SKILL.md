@@ -1,6 +1,6 @@
 ---
 name: gitflow-prerequisites
-version: 1.0.0
+version: 1.1.0
 description: Verify that git flow prerequisites are met for an Enterspeed project. Checks git flow installation, initialisation, git user identity, clean working directory, and branch state. Run at the start of any gitflow-release-* or gitflow-hotfix-* skill before proceeding.
 ---
 
@@ -37,11 +37,18 @@ If this fails, stop and tell the user:
 ## Check 3 — git user identity configured
 
 ```bash
-git config user.name && git config user.email
+git config user.name
 ```
 
-If either fails, stop and tell the user:
-> "Git user identity is not configured. Set it with `git config user.name 'Your Name'` and `git config user.email 'you@enterspeed.com'`."
+If this fails, stop and tell the user:
+> "Git user.name is not configured. Set it with `git config user.name 'Your Name'`."
+
+```bash
+git config user.email
+```
+
+If this fails, stop and tell the user:
+> "Git user.email is not configured. Set it with `git config user.email 'you@enterspeed.com'`."
 
 ---
 

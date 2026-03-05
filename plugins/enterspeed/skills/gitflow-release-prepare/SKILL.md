@@ -73,7 +73,7 @@ If no tags exist, list the most recent commits:
 git log --no-merges --oneline -20
 ```
 
-If no commits are found since the last tag, tell the user:
+If a tag exists but no commits are found since it, tell the user:
 > "No commits found since the last release (`<last-tag>`). There may be nothing to release. Should I still propose a patch bump (`{major}.{minor}.{patch+1}`), or skip the release?"
 Stop and wait for their answer.
 

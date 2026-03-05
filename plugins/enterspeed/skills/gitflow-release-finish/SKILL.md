@@ -15,7 +15,7 @@ Completes the release after the master and develop PRs (opened by **gitflow-rele
 ## Prerequisites
 
 Ask the user for:
-- The **version** that was released (e.g. `1.53.0`)
+- The **version** that was released (e.g. `1.53.0` — digits only, no `v` prefix)
 - The **master PR number** and **develop PR number** from the gitflow-release-publish output
 
 ---

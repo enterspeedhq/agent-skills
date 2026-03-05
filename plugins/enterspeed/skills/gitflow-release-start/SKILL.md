@@ -34,7 +34,10 @@ Find `azure-pipeline.yaml` (or `azure-pipelines.yaml`):
 ls azure-pipeline.yaml 2>/dev/null || ls azure-pipelines.yaml 2>/dev/null
 ```
 
-Store the found filename as `PIPELINE_FILE` and use it consistently in all subsequent steps. If neither file is found, ask the user for the path, then verify it exists and contains all three version keys:
+Store the found filename as `PIPELINE_FILE` and use it consistently in all subsequent steps. If neither file is found, stop and tell the user:
+> "Neither `azure-pipeline.yaml` nor `azure-pipelines.yaml` was found. Make sure you are in the project root directory."
+
+Verify the file contains all three version keys:
 
 ```bash
 grep -E '^\s*(majorVersion|minorVersion|patchVersion):' "$PIPELINE_FILE"
@@ -52,7 +55,9 @@ git checkout master && git pull origin master
 git checkout develop && git pull origin develop
 ```
 
-If either command fails, stop and report the error.
+If either pull fails, stop and report the full error. Common causes:
+- **Merge conflict**: resolve it on the affected branch before continuing
+- **Authentication error**: verify git credentials (`git config --list | grep credential`)
 
 ---
 
@@ -79,7 +84,7 @@ This creates and checks out `release/<version>` from `develop`. If it fails, sto
 
 ## Step 4 — Update pipeline file and commit
 
-Copy the update script to a temporary location and run it:
+Copy the update script to a temporary location and run it. `<skill-path>` is the directory where this skill is installed (e.g. `~/.claude/plugins/enterspeed/skills/gitflow-release-start`):
 
 ```bash
 cp <skill-path>/scripts/update_version.py /tmp/update_version.py
