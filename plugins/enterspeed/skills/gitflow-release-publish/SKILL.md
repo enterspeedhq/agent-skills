@@ -14,7 +14,15 @@ Pushes the local release branch to GitHub and opens two PRs: one to master (prod
 
 ## Input
 
-Ask the user for the version being released (e.g. `1.53.0`). Validate it matches `N.N.N` (digits only, no `v` prefix) — reject and re-prompt if invalid. Use this as `<version>` for all subsequent steps.
+Ask the user for the version being released (e.g. `1.53.0`). Validate it matches `N.N.N` (digits only, no `v` prefix):
+
+```bash
+if ! [[ "<version>" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "Invalid version format. Must be N.N.N (e.g. 1.53.0, not v1.53.0)"
+fi
+```
+
+Reject and re-prompt if invalid. Use this as `<version>` for all subsequent steps.
 
 ---
 
