@@ -72,15 +72,16 @@ If neither file is found, warn the user and use a fallback:
 
 ```bash
 if [ -z "$PIPELINE_FILE" ]; then
-  echo "WARNING: Neither azure-pipeline.yaml nor azure-pipelines.yaml found. Using fallback name in PR body."
+  echo "WARNING: Neither azure-pipeline.yaml nor azure-pipelines.yaml found in current directory."
+  echo "Using 'azure-pipeline.yaml' as fallback for PR body (file was already updated by gitflow-release-start)."
   PIPELINE_FILE="azure-pipeline.yaml"
 fi
 ```
 
-Open the production merge PR:
+Open the production merge PR and extract the PR number directly:
 
 ```bash
-MASTER_PR_URL=$(gh pr create \
+MASTER_PR_NUMBER=$(gh pr create \
   --base master \
   --head "release/<version>" \
   --title "Release <version>" \
@@ -92,8 +93,8 @@ Bumps version to \`<version>\` in \`$PIPELINE_FILE\`.
 - [ ] Version variables updated correctly in \`$PIPELINE_FILE\`
 - [ ] CI passes on the release branch
 - [ ] Reviewed and approved" \
-  --json url --jq '.url')
-MASTER_PR_NUMBER=$(gh pr view "$MASTER_PR_URL" --json number --jq '.number')
+  --json number --jq '.number')
+MASTER_PR_URL=$(gh pr view "$MASTER_PR_NUMBER" --json url --jq '.url')
 echo "Master PR: $MASTER_PR_URL (#$MASTER_PR_NUMBER)"
 ```
 
@@ -104,19 +105,19 @@ If this fails, stop and report the error.
 ## Step 3 — Open PR to develop
 
 ```bash
-DEVELOP_PR_URL=$(gh pr create \
+DEVELOP_PR_NUMBER=$(gh pr create \
   --base develop \
   --head "release/<version>" \
   --title "Back-merge release <version> into develop" \
   --body "## Back-merge release <version>
 
-Merges release branch back into develop after the `<version>` release.
+Merges release branch back into develop after the \`<version>\` release.
 
 ### Checklist
 - [ ] No conflicts with develop
 - [ ] CI passes" \
-  --json url --jq '.url')
-DEVELOP_PR_NUMBER=$(gh pr view "$DEVELOP_PR_URL" --json number --jq '.number')
+  --json number --jq '.number')
+DEVELOP_PR_URL=$(gh pr view "$DEVELOP_PR_NUMBER" --json url --jq '.url')
 echo "Develop PR: $DEVELOP_PR_URL (#$DEVELOP_PR_NUMBER)"
 ```
 
@@ -133,7 +134,9 @@ Store the PR numbers for the next step. Show the user both PR URLs, then say:
 > - **Master PR**: `$MASTER_PR_URL` (#`$MASTER_PR_NUMBER`)
 > - **Develop PR**: `$DEVELOP_PR_URL` (#`$DEVELOP_PR_NUMBER`)
 >
-> Merge the **master PR first**, then the **develop PR**.
+> **Important**: Merge the **master PR first**, then the **develop PR**. This order ensures that the version changes on master are included in the back-merge to develop.
+>
+> **Merge strategy**: Use your team's standard merge method (merge commit, squash, or rebase). If you're unsure, ask your team lead.
 >
 > Once both are merged, I'll help you run **gitflow-release-finish** with:
 >

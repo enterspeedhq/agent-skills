@@ -66,11 +66,13 @@ If either pull fails, stop and report the full error. Common causes:
 
 ## Step 3 — Start release branch
 
-Check whether the release branch already exists:
+Check whether the release branch already exists locally:
 
 ```bash
 git branch --list "release/<version>"
 ```
+
+> **Note**: This checks only local branches. Remote release branches (if they exist from a previous attempt) won't block this step. The push in gitflow-release-publish will detect any remote conflicts.
 
 If it returns output, stop and tell the user:
 
@@ -88,7 +90,7 @@ This creates and checks out `release/<version>` from `develop`. If it fails, sto
 
 ## Step 4 — Update pipeline file and commit
 
-> **Note**: This step uses the `update_version.py` script located in this skill's `scripts/` directory. The script must be accessible for this step to work.
+> **Note**: This step uses the `update_version.py` script located in this skill's `scripts/` directory. The Enterspeed plugin installer places the script at the path shown below. If the script is not found, verify the plugin is properly installed.
 
 Locate the update script. If you're running this skill through the Enterspeed plugin, the script should be at:
 
@@ -141,12 +143,20 @@ grep -B2 -A2 -E '^\s*(majorVersion|minorVersion|patchVersion):' "$PIPELINE_FILE"
 
 Show the user the updated lines and ask: "The pipeline file has been updated to `<version>`. Ready to commit and proceed to publishing?"
 
-If confirmed, commit:
+If the user confirms, commit:
 
 ```bash
 git add "$PIPELINE_FILE"
 git commit -m "Bump version to <version>"
 ```
+
+If the user declines:
+
+- The release branch exists but has no commits yet
+- The pipeline file changes are uncommitted (you can see them with `git diff`)
+- Options:
+  1. If they want to adjust the version, revert the file changes (`git checkout "$PIPELINE_FILE"`) and re-run this skill with a different version
+  2. If they want to abort completely, follow the "Before committing" cleanup instructions below
 
 ---
 
@@ -160,14 +170,20 @@ Tell the user:
 
 ## If something goes wrong
 
-- **Before committing**: Delete the local release branch and start over:
+- **Before committing** (if the user declines in Step 4 or the script fails): Delete the local release branch and start over:
 
   ```bash
   git checkout develop
   git branch -D release/<version>
   ```
 
-- **After committing but before publishing**: The release branch and commit exist locally only — no changes have been pushed to GitHub, so there's no impact on master, develop, or remote branches. You have two options:
+  This removes the release branch cleanly. Any uncommitted file changes will remain; reset them with `git checkout <file>` if needed.
+
+- **After committing but before publishing**: The release branch with its commit exists **locally only** — no changes have been pushed to GitHub, so there's no impact on master, develop, or remote branches. At this point:
+  - **Current state**: You have a local `release/<version>` branch with the version commit
+  - **No remote impact**: Nothing has been pushed yet
+
+  You have two options:
   1. **Continue with publishing**: If the commit is correct, proceed with **gitflow-release-publish**.
   2. **Abort and clean up**: Delete the release branch to discard all changes:
      ```bash

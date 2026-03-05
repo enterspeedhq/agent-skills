@@ -32,7 +32,12 @@ updated = re.sub(r'^(\s*minorVersion:\s*)\d+', r'\g<1>' + minor, updated, flags=
 updated = re.sub(r'^(\s*patchVersion:\s*)\d+', r'\g<1>' + patch, updated, flags=re.MULTILINE)
 
 if updated == content:
-    print(f"ERROR: No version keys were updated in {pipeline_file}. Check that majorVersion, minorVersion, and patchVersion exist.", file=sys.stderr)
+    print(f"ERROR: No version keys were updated in {pipeline_file}.", file=sys.stderr)
+    print(f"Check that majorVersion, minorVersion, and patchVersion exist with the expected format:", file=sys.stderr)
+    print(f"  majorVersion: 1", file=sys.stderr)
+    print(f"  minorVersion: 52", file=sys.stderr)
+    print(f"  patchVersion: 0", file=sys.stderr)
+    print(f"(no quotes, single space after colon, plain integer values)", file=sys.stderr)
     sys.exit(1)
 
 try:

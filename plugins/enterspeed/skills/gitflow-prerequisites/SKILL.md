@@ -1,12 +1,12 @@
 ---
 name: gitflow-prerequisites
 version: 1.1.0
-description: Verify that git flow prerequisites are met for an Enterspeed project. Checks git flow installation, initialisation, git user identity, clean working directory, and branch state. Automatically invoke this before executing any gitflow-release-* or gitflow-hotfix-* skill.
+description: Always invoke before gitflow-release-* or gitflow-hotfix-* skills. Verifies git flow installation, initialisation, git user identity, clean working directory, and branch state.
 ---
 
 # Git Flow — Prerequisites
 
-Verifies all common prerequisites for git flow skills. Run this before any `gitflow-release-*` or `gitflow-hotfix-*` skill.
+Verifies all common prerequisites for git flow skills. **Always run this first** before any `gitflow-release-*` or `gitflow-hotfix-*` skill.
 
 > **Stop on any error** — if any check fails, report the issue to the user and do not proceed.
 
@@ -82,4 +82,4 @@ If this fails, stop and tell the user:
 
 ## Done
 
-All prerequisites passed successfully. This skill does not return any value — it simply stops on any failure. If you reach this point, all checks have passed and you should continue with the next step of the calling skill.
+All prerequisites passed successfully. Report success to the user and control returns to the calling skill. This skill does not return any value — it simply stops on any failure. If you reach this point, all checks have passed and the calling skill should continue with its next step.

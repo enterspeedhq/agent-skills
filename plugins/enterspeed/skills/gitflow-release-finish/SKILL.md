@@ -1,7 +1,7 @@
 ---
 name: gitflow-release-finish
 version: 1.2.0
-description: Finish a git flow release after both PRs are merged: verifies PR state, pulls master and develop, deletes the local release branch, creates and pushes the version tag. Use when the user says "finish the release", "both PRs are merged", "release is merged", or "tag the release". Always run after gitflow-release-publish. This is the final step in the release workflow.
+description: Finish a git flow release once both PRs are merged: verifies PR state, pulls master and develop, deletes the local release branch, creates and pushes the version tag. Use when the user says "finish the release", "once both PRs are merged", "after merging the PRs", or "tag the release". Always run after gitflow-release-publish. This is the final step in the release workflow.
 ---
 
 # Git Flow Release — Finish
@@ -18,6 +18,17 @@ Ask the user for:
 
 - The **version** that was released (e.g. `1.53.0` — digits only, no `v` prefix)
 - The **master PR number** and **develop PR number** from the gitflow-release-publish output
+
+Validate the version format before proceeding:
+
+```bash
+if ! [[ "<version>" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "Invalid version format. Must be N.N.N (e.g., 1.53.0, not v1.53.0)"
+  exit 1
+fi
+```
+
+If validation fails, reject and re-prompt for the correct format.
 
 ---
 
@@ -64,7 +75,7 @@ The remote release branch was deleted by GitHub on merge. Check if the local cop
 git branch --list "release/<version>"
 ```
 
-If it returns output, delete it with `-D` (git won't recognise it as merged since GitHub handled the merge):
+If it returns output, delete it with `-D` (force delete is required because the remote deletion doesn't update the local tracking ref automatically):
 
 ```bash
 git branch -D release/<version>
@@ -117,9 +128,21 @@ If the tag points to a **different** commit, stop and tell the user:
 If the tag does not exist at all, create and push it:
 
 ```bash
-git tag <version> $(git rev-parse master)
+git tag <version> master
 git push origin <version>
 ```
+
+### Verify tag on remote
+
+Confirm the tag exists on GitHub:
+
+```bash
+git ls-remote --tags origin <version>
+```
+
+If this returns nothing, stop and tell the user:
+
+> "Tag `<version>` was not found on the remote. The push may have failed. Check your permissions and network connection, then try pushing again with `git push origin <version>`."
 
 ---
 

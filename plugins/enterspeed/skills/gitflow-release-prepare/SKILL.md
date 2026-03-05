@@ -79,16 +79,28 @@ If no tags exist, list the most recent commits:
 git log --no-merges --oneline -20
 ```
 
-Run a full log to catch `BREAKING CHANGE` in commit footers (do this before deciding if there are no commits):
+Always run a full log to catch `BREAKING CHANGE` in commit footers (this searches commit bodies, which the oneline format doesn't show):
 
 ```bash
 git log <last-tag>..HEAD --no-merges --format="%B"
 ```
 
-If a tag exists but no commits are found since it, tell the user:
+If a tag exists but no commits are found since it, check if develop and master are on the same commit:
 
-> "No commits found since the last release (`<last-tag>`). There may be nothing to release. Should I still propose a patch bump (`{major}.{minor}.{patch+1}`), or skip the release?"
-> Stop and wait for their answer.
+```bash
+git rev-parse develop
+git rev-parse master
+```
+
+If they match, tell the user:
+
+> "No commits found since the last release (`<last-tag>`), and develop and master are on the same commit. There may be nothing to release. Should I still propose a patch bump (`{major}.{minor}.{patch+1}`), or skip the release?"
+
+If they don't match, tell the user:
+
+> "No commits found since the last release (`<last-tag>`) on develop. There may be nothing to release. Should I still propose a patch bump (`{major}.{minor}.{patch+1}`), or skip the release?"
+
+Stop and wait for their answer.
 
 ---
 
@@ -126,6 +138,6 @@ Validate any user-provided version matches the pattern `N.N.N`. If the format is
 
 Once confirmed, tell the user:
 
-> "Version `1.53.0` confirmed. Ready to start the release now? I'll run **gitflow-release-start** with version `1.53.0` to create the release branch and update the pipeline file."
+> "Version `1.53.0` confirmed. When you're ready, I can run **gitflow-release-start** with version `1.53.0` to create the release branch and update the pipeline file. Would you like to proceed now?"
 
-Wait for the user to confirm before proceeding to gitflow-release-start.
+Wait for explicit user confirmation before invoking gitflow-release-start. Do not automatically trigger the next skill.
