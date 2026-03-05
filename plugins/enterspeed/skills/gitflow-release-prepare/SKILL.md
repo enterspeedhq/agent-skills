@@ -33,7 +33,12 @@ grep -E '^\s*(majorVersion|minorVersion|patchVersion):' "$PIPELINE_FILE"
 ```
 
 Verify all three keys were found. If any are missing, stop and tell the user:
+
 > "Could not find `majorVersion`, `minorVersion`, or `patchVersion` in `$PIPELINE_FILE`. Check that the file follows the expected format."
+
+If the keys are present but have unexpected formatting (e.g., quoted values, unusual indentation, or YAML nesting), ask the user:
+
+> "Found version keys in `$PIPELINE_FILE` but they may have unexpected formatting. Please verify the exact format matches the standard pattern (e.g., `majorVersion: 1` with no quotes)."
 
 Parse the current version as `{major}.{minor}.{patch}`.
 
@@ -59,7 +64,8 @@ git describe --tags --abbrev=0 2>/dev/null || echo "no-tags"
 ```
 
 Enterspeed projects use plain semver tags without a `v` prefix (e.g. `1.53.0`, not `v1.53.0`). If the detected tag starts with `v`, stop and tell the user:
-> "The most recent tag (`<tag>`) uses a `v` prefix, which doesn't match the expected convention. Please check your tags before releasing."
+
+> "The most recent tag (`<tag>`) uses a `v` prefix, which doesn't match the expected convention. If you believe your tags follow a different convention, contact your team lead before releasing."
 
 List real commits (excluding merges) since the last tag:
 
@@ -73,15 +79,16 @@ If no tags exist, list the most recent commits:
 git log --no-merges --oneline -20
 ```
 
-If a tag exists but no commits are found since it, tell the user:
-> "No commits found since the last release (`<last-tag>`). There may be nothing to release. Should I still propose a patch bump (`{major}.{minor}.{patch+1}`), or skip the release?"
-Stop and wait for their answer.
-
-Also run a full log to catch `BREAKING CHANGE` in commit footers:
+Run a full log to catch `BREAKING CHANGE` in commit footers (do this before deciding if there are no commits):
 
 ```bash
 git log <last-tag>..HEAD --no-merges --format="%B"
 ```
+
+If a tag exists but no commits are found since it, tell the user:
+
+> "No commits found since the last release (`<last-tag>`). There may be nothing to release. Should I still propose a patch bump (`{major}.{minor}.{patch+1}`), or skip the release?"
+> Stop and wait for their answer.
 
 ---
 
@@ -119,4 +126,6 @@ Validate any user-provided version matches the pattern `N.N.N`. If the format is
 
 Once confirmed, tell the user:
 
-> "Version `1.53.0` confirmed. When you're ready to start the release, run the **gitflow-release-start** skill and provide version `1.53.0`."
+> "Version `1.53.0` confirmed. Ready to start the release now? I'll run **gitflow-release-start** with version `1.53.0` to create the release branch and update the pipeline file."
+
+Wait for the user to confirm before proceeding to gitflow-release-start.

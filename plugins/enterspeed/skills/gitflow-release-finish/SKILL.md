@@ -1,7 +1,7 @@
 ---
 name: gitflow-release-finish
 version: 1.2.0
-description: Finish a git flow release after both PRs are merged: verifies PR state, pulls master and develop, deletes the local release branch, creates and pushes the version tag. Use when the user says "finish the release", "both PRs are merged", "release is merged", or "tag the release". Always run after gitflow-release-publish.
+description: Finish a git flow release after both PRs are merged: verifies PR state, pulls master and develop, deletes the local release branch, creates and pushes the version tag. Use when the user says "finish the release", "both PRs are merged", "release is merged", or "tag the release". Always run after gitflow-release-publish. This is the final step in the release workflow.
 ---
 
 # Git Flow Release — Finish
@@ -15,6 +15,7 @@ Completes the release after the master and develop PRs (opened by **gitflow-rele
 ## Prerequisites
 
 Ask the user for:
+
 - The **version** that was released (e.g. `1.53.0` — digits only, no `v` prefix)
 - The **master PR number** and **develop PR number** from the gitflow-release-publish output
 
@@ -35,9 +36,11 @@ gh pr view <develop-pr-number> --json state --jq '.state'
 ```
 
 Both must return `MERGED`. If either returns `OPEN`, stop and tell the user:
+
 > "PR #`<number>` is not merged. Merge it on GitHub and run this skill again."
 
 If either returns `CLOSED` (abandoned/rejected), stop and tell the user:
+
 > "PR #`<number>` was closed without merging. Please check what happened — you may need to reopen it or open a new PR from `release/<version>`."
 
 ---
@@ -81,6 +84,8 @@ git rev-parse --abbrev-ref HEAD
 
 If the output is not `master`, run `git checkout master` first.
 
+### Check if tag already exists locally
+
 Check that the tag does not already exist:
 
 ```bash
@@ -106,6 +111,7 @@ git push origin <version>
 ```
 
 If the tag points to a **different** commit, stop and tell the user:
+
 > "Tag `<version>` already exists but points to an unexpected commit. Investigate before proceeding — do not overwrite the tag."
 
 If the tag does not exist at all, create and push it:
@@ -132,6 +138,8 @@ Release <version> complete:
 ---
 
 ## If something went wrong
+
+> **Tip**: If you encounter git flow setup issues, run the **gitflow-prerequisites** skill to verify your environment.
 
 - **After both PRs merge**: the release is complete. If you need to undo it, a revert commit on master is the safest path. Team coordination is required.
 - **Tag push fails**: check that you have push access and the tag doesn't already exist on the remote (`git ls-remote --tags origin <version>`).

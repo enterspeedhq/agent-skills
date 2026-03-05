@@ -1,7 +1,7 @@
 ---
 name: gitflow-prerequisites
 version: 1.1.0
-description: Verify that git flow prerequisites are met for an Enterspeed project. Checks git flow installation, initialisation, git user identity, clean working directory, and branch state. Run at the start of any gitflow-release-* or gitflow-hotfix-* skill before proceeding.
+description: Verify that git flow prerequisites are met for an Enterspeed project. Checks git flow installation, initialisation, git user identity, clean working directory, and branch state. Automatically invoke this before executing any gitflow-release-* or gitflow-hotfix-* skill.
 ---
 
 # Git Flow — Prerequisites
@@ -19,6 +19,7 @@ git flow version
 ```
 
 If this fails, stop and tell the user:
+
 > "git flow is not installed. Install it with `brew install git-flow-avh` and run `git flow init` in your project first."
 
 ---
@@ -30,6 +31,7 @@ git flow config
 ```
 
 If this fails, stop and tell the user:
+
 > "git flow has not been initialised in this repository. Run `git flow init` first."
 
 ---
@@ -41,6 +43,7 @@ git config user.name
 ```
 
 If this fails, stop and tell the user:
+
 > "Git user.name is not configured. Set it with `git config user.name 'Your Name'`."
 
 ```bash
@@ -48,6 +51,7 @@ git config user.email
 ```
 
 If this fails, stop and tell the user:
+
 > "Git user.email is not configured. Set it with `git config user.email 'you@enterspeed.com'`."
 
 ---
@@ -59,21 +63,23 @@ git status --porcelain
 ```
 
 If there is any output, stop and tell the user:
+
 > "There are uncommitted changes in your working directory. Please commit or stash them before continuing."
 
 ---
 
-## Check 5 — not in detached HEAD state
+## Check 5 — verify you are on a branch (not detached HEAD)
 
 ```bash
 git symbolic-ref -q HEAD
 ```
 
 If this fails, stop and tell the user:
+
 > "You are in detached HEAD state. Check out a branch (e.g. `git checkout develop`) before continuing."
 
 ---
 
 ## Done
 
-All prerequisites passed. Return to the skill that triggered this check and continue with the next step.
+All prerequisites passed successfully. This skill does not return any value — it simply stops on any failure. If you reach this point, all checks have passed and you should continue with the next step of the calling skill.

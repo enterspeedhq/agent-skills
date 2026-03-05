@@ -35,6 +35,7 @@ gh --version
 ```
 
 If not installed, stop and tell the user:
+
 > "GitHub CLI (`gh`) is not installed. Install it with `brew install gh` and authenticate with `gh auth login` first."
 
 Verify the release branch exists locally:
@@ -44,6 +45,7 @@ git branch --list "release/<version>"
 ```
 
 If it returns nothing, stop and tell the user:
+
 > "No local branch `release/<version>` found. Run **gitflow-release-start** with version `<version>` first."
 
 ---
@@ -63,10 +65,17 @@ If this fails, stop and report the error.
 Find the pipeline file name to reference in the PR body:
 
 ```bash
-ls azure-pipeline.yaml 2>/dev/null || ls azure-pipelines.yaml 2>/dev/null
+PIPELINE_FILE=$(ls azure-pipeline.yaml 2>/dev/null || ls azure-pipelines.yaml 2>/dev/null)
 ```
 
-Store as `PIPELINE_FILE`. If neither file is found, set `PIPELINE_FILE` to `azure-pipeline.yaml` as a fallback (the file was already updated by gitflow-release-start, so this is for display only).
+If neither file is found, warn the user and use a fallback:
+
+```bash
+if [ -z "$PIPELINE_FILE" ]; then
+  echo "WARNING: Neither azure-pipeline.yaml nor azure-pipelines.yaml found. Using fallback name in PR body."
+  PIPELINE_FILE="azure-pipeline.yaml"
+fi
+```
 
 Open the production merge PR:
 
@@ -99,7 +108,13 @@ DEVELOP_PR_URL=$(gh pr create \
   --base develop \
   --head "release/<version>" \
   --title "Back-merge release <version> into develop" \
-  --body "Merges release branch back into develop after the <version> release." \
+  --body "## Back-merge release <version>
+
+Merges release branch back into develop after the `<version>` release.
+
+### Checklist
+- [ ] No conflicts with develop
+- [ ] CI passes" \
   --json url --jq '.url')
 DEVELOP_PR_NUMBER=$(gh pr view "$DEVELOP_PR_URL" --json number --jq '.number')
 echo "Develop PR: $DEVELOP_PR_URL (#$DEVELOP_PR_NUMBER)"
@@ -111,28 +126,36 @@ If this fails, stop and report the error.
 
 ## Done
 
-Show the user both PR URLs, then say:
+Store the PR numbers for the next step. Show the user both PR URLs, then say:
 
 > "Two PRs are open:
+>
 > - **Master PR**: `$MASTER_PR_URL` (#`$MASTER_PR_NUMBER`)
 > - **Develop PR**: `$DEVELOP_PR_URL` (#`$DEVELOP_PR_NUMBER`)
 >
 > Merge the **master PR first**, then the **develop PR**.
 >
-> Once both are merged, run **gitflow-release-finish** and provide:
+> Once both are merged, I'll help you run **gitflow-release-finish** with:
+>
 > - Version: `<version>`
 > - Master PR: `#$MASTER_PR_NUMBER`
-> - Develop PR: `#$DEVELOP_PR_NUMBER`"
+> - Develop PR: `#$DEVELOP_PR_NUMBER`
+>
+> (Note: I've stored these values and will provide them automatically when you're ready to finish the release.)"
+
+> **If something goes wrong**: See the troubleshooting section below for recovery steps.
 
 ---
 
 ## If something goes wrong
 
 - **Before any PRs are merged**: close both PRs on GitHub, then delete the remote and local release branch:
+
   ```bash
   git push origin --delete release/<version>
   git branch -D release/<version>
   ```
+
   The release is fully undone with no impact on master or develop.
 
 - **After master PR merges but before develop PR**: do not skip the back-merge. Merge the develop PR. If it has conflicts, resolve them in the GitHub conflict editor (Edit → resolve conflicts → mark as resolved → commit). If conflicts are too complex for the GitHub editor, check out develop locally, merge master in, resolve, push, then merge the PR.

@@ -1,6 +1,6 @@
 ---
 name: gitflow-release-start
-version: 1.3.0
+version: 1.4.0
 description: Start a git flow release for an Enterspeed project: creates the release branch, updates azure-pipeline.yaml, and commits. Use when the user says "start the release", "create the release branch", or provides a confirmed version (e.g. "start release 1.53.0"). Run gitflow-release-prepare first to determine the version. Follow up with gitflow-release-publish to push and open PRs.
 ---
 
@@ -35,6 +35,7 @@ ls azure-pipeline.yaml 2>/dev/null || ls azure-pipelines.yaml 2>/dev/null
 ```
 
 Store the found filename as `PIPELINE_FILE` and use it consistently in all subsequent steps. If neither file is found, stop and tell the user:
+
 > "Neither `azure-pipeline.yaml` nor `azure-pipelines.yaml` was found. Make sure you are in the project root directory."
 
 Verify the file contains all three version keys:
@@ -44,6 +45,7 @@ grep -E '^\s*(majorVersion|minorVersion|patchVersion):' "$PIPELINE_FILE"
 ```
 
 If any of the three keys are missing, stop and tell the user:
+
 > "Could not find `majorVersion`, `minorVersion`, or `patchVersion` in `$PIPELINE_FILE`. Check that the file follows the expected format."
 
 ---
@@ -56,6 +58,7 @@ git checkout develop && git pull origin develop
 ```
 
 If either pull fails, stop and report the full error. Common causes:
+
 - **Merge conflict**: resolve it on the affected branch before continuing
 - **Authentication error**: verify git credentials (`git config --list | grep credential`)
 
@@ -70,6 +73,7 @@ git branch --list "release/<version>"
 ```
 
 If it returns output, stop and tell the user:
+
 > "A release branch for `<version>` already exists locally. Delete it with `git branch -D release/<version>` if you want to start fresh, or switch to it and continue from Step 4."
 
 Otherwise, start the branch:
@@ -84,25 +88,56 @@ This creates and checks out `release/<version>` from `develop`. If it fails, sto
 
 ## Step 4 — Update pipeline file and commit
 
-Copy the update script to a temporary location and run it. `<skill-path>` is the directory where this skill is installed (e.g. `~/.claude/plugins/enterspeed/skills/gitflow-release-start`):
+> **Note**: This step uses the `update_version.py` script located in this skill's `scripts/` directory. The script must be accessible for this step to work.
+
+Locate the update script. If you're running this skill through the Enterspeed plugin, the script should be at:
+
+```
+.claude-plugin/plugins/enterspeed/skills/gitflow-release-start/scripts/update_version.py
+```
+
+Verify the script exists:
 
 ```bash
-cp <skill-path>/scripts/update_version.py /tmp/update_version.py
+test -f .claude-plugin/plugins/enterspeed/skills/gitflow-release-start/scripts/update_version.py && echo "Script found" || echo "ERROR: Script not found"
+```
+
+If the script is not found, stop and tell the user:
+
+> "The `update_version.py` script could not be found. This skill requires the script at `.claude-plugin/plugins/enterspeed/skills/gitflow-release-start/scripts/update_version.py`. Check that the Enterspeed plugin is properly installed."
+
+Extract the version components and run the update script (replacing `<version>` with the actual version string, e.g., if the user said "1.53.0", use that value):
+
+```bash
 MAJOR=$(echo "<version>" | cut -d. -f1)
 MINOR=$(echo "<version>" | cut -d. -f2)
 PATCH=$(echo "<version>" | cut -d. -f3)
-MAJOR="$MAJOR" MINOR="$MINOR" PATCH="$PATCH" PIPELINE_FILE="$PIPELINE_FILE" python3 /tmp/update_version.py
+MAJOR="$MAJOR" MINOR="$MINOR" PATCH="$PATCH" PIPELINE_FILE="$PIPELINE_FILE" python3 .claude-plugin/plugins/enterspeed/skills/gitflow-release-start/scripts/update_version.py
 ```
 
-Substitute the actual version string for `<version>` before running. If the script exits with an error, stop and report it.
-
-Verify the result:
+If the script exits with an error, stop and report it. Then show the current file contents for debugging:
 
 ```bash
-grep -E '^\s*(majorVersion|minorVersion|patchVersion):' "$PIPELINE_FILE"
+cat "$PIPELINE_FILE" | head -20
 ```
 
-If the values don't match `<version>`, stop and report the discrepancy.
+Verify the updated values match the expected version:
+
+```bash
+grep -E "^\s*majorVersion:\s*$MAJOR" "$PIPELINE_FILE"
+grep -E "^\s*minorVersion:\s*$MINOR" "$PIPELINE_FILE"
+grep -E "^\s*patchVersion:\s*$PATCH" "$PIPELINE_FILE"
+```
+
+Each grep should return exactly one line. If any grep returns nothing, stop and tell the user:
+
+> "Version update failed. Expected `<version>` but the values in `$PIPELINE_FILE` don't match. The file may have unexpected formatting or the version keys are missing."
+
+Then show the relevant section of the file for debugging:
+
+```bash
+grep -B2 -A2 -E '^\s*(majorVersion|minorVersion|patchVersion):' "$PIPELINE_FILE"
+```
 
 Show the user the updated lines and ask: "The pipeline file has been updated to `<version>`. Ready to commit and proceed to publishing?"
 
@@ -125,14 +160,20 @@ Tell the user:
 
 ## If something goes wrong
 
-- **Before committing**: delete the local release branch and start over:
+- **Before committing**: Delete the local release branch and start over:
+
   ```bash
   git checkout develop
   git branch -D release/<version>
   ```
 
-- **After committing but before publishing**: the release branch is local only — no impact on master, develop, or GitHub. Delete the branch to abort:
-  ```bash
-  git checkout develop
-  git branch -D release/<version>
-  ```
+- **After committing but before publishing**: The release branch and commit exist locally only — no changes have been pushed to GitHub, so there's no impact on master, develop, or remote branches. You have two options:
+  1. **Continue with publishing**: If the commit is correct, proceed with **gitflow-release-publish**.
+  2. **Abort and clean up**: Delete the release branch to discard all changes:
+     ```bash
+     git checkout develop
+     git branch -D release/<version>
+     ```
+     This is safe because nothing has been pushed yet. You can re-run this skill to start fresh.
+
+- **After an interrupted publish**: If you've started **gitflow-release-publish** but it failed mid-way, see the rollback instructions in that skill for proper cleanup.
