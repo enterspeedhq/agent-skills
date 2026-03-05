@@ -1,6 +1,6 @@
 ---
 name: gitflow-release
-version: 1.3.0
+version: 1.4.0
 description: Automate git flow releases for Enterspeed projects. Use when the user says "release", "cut a release", "start a release", "git flow release", or "bump the version".
 ---
 
@@ -84,6 +84,10 @@ If no tags exist, list the most recent commits:
 git log --no-merges --oneline -20
 ```
 
+If no commits are found since the last tag, tell the user:
+> "No commits found since the last release. There may be nothing to release. Should I still proceed with a patch bump, or skip the release?"
+Stop and wait for their answer before continuing.
+
 Determine the suggested bump from commit messages:
 
 - Any message containing `BREAKING CHANGE`, `feat!`, or `fix!` → **major** bump
@@ -140,19 +144,19 @@ This creates and checks out `release/<version>` from `develop`. If it fails, sto
 Split `<version>` into components and export them as shell variables, then run the update script using those variables — no manual placeholder replacement needed:
 
 ```bash
-MAJOR=<major> MINOR=<minor> PATCH=<patch> python3 -c "
+MAJOR=<major> MINOR=<minor> PATCH=<patch> PIPELINE_FILE="$PIPELINE_FILE" python3 -c "
 import re, os
 major = os.environ['MAJOR']
 minor = os.environ['MINOR']
 patch = os.environ['PATCH']
-pipeline_file = os.environ.get('PIPELINE_FILE', 'azure-pipeline.yaml')
+pipeline_file = os.environ['PIPELINE_FILE']
 content = open(pipeline_file).read()
 content = re.sub(r'^(\s*majorVersion:\s*)\d+', r'\g<1>' + major, content, flags=re.MULTILINE)
 content = re.sub(r'^(\s*minorVersion:\s*)\d+', r'\g<1>' + minor, content, flags=re.MULTILINE)
 content = re.sub(r'^(\s*patchVersion:\s*)\d+', r'\g<1>' + patch, content, flags=re.MULTILINE)
 open(pipeline_file, 'w').write(content)
 print(f'Updated {pipeline_file} to {major}.{minor}.{patch}')
-" PIPELINE_FILE="$PIPELINE_FILE"
+"
 ```
 
 Substitute the actual numeric values of `<major>`, `<minor>`, `<patch>` before running. Verify the result:
@@ -178,7 +182,7 @@ Push the release branch:
 git push origin release/<version>
 ```
 
-Open two pull requests:
+Open two pull requests. Substitute the actual version string for `<version>` in each command before running:
 
 **PR 1 — release → master** (the production merge):
 ```bash
@@ -186,17 +190,14 @@ gh pr create \
   --base master \
   --head "release/<version>" \
   --title "Release <version>" \
-  --body "$(cat <<'EOF'
-## Release <version>
+  --body "## Release <version>
 
-Bumps version to `<version>` in `azure-pipeline.yaml`.
+Bumps version to \`<version>\` in \`$PIPELINE_FILE\`.
 
 ### Checklist
-- [ ] Version variables updated correctly in `azure-pipeline.yaml`
+- [ ] Version variables updated correctly in \`$PIPELINE_FILE\`
 - [ ] CI passes on the release branch
-- [ ] Reviewed and approved
-EOF
-)"
+- [ ] Reviewed and approved"
 ```
 
 **PR 2 — release → develop** (the back-merge):
@@ -205,7 +206,7 @@ gh pr create \
   --base develop \
   --head "release/<version>" \
   --title "Back-merge release <version> into develop" \
-  --body "Merges release branch back into develop after the \`<version>\` release."
+  --body "Merges release branch back into develop after the <version> release."
 ```
 
 Show the user both PR URLs, then say:
@@ -220,6 +221,16 @@ Wait for the user to reply that both PRs are merged before continuing.
 ---
 
 ## Step 7 — Local cleanup and tagging
+
+Wait for the user to confirm both PRs are merged. Before proceeding, verify both are actually merged using the PR numbers returned in Step 6:
+
+```bash
+gh pr view <master-pr-number> --json state --jq '.state'
+gh pr view <develop-pr-number> --json state --jq '.state'
+```
+
+Both must return `MERGED`. If either returns `OPEN` or `CLOSED`, tell the user and stop:
+> "The PR doesn't appear to be merged yet. Please merge it on GitHub and let me know when done."
 
 Pull the updated branches:
 
