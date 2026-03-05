@@ -1,12 +1,12 @@
 ---
-name: gitflow-release
-version: 1.6.0
-description: Automate git flow releases for Enterspeed projects. Use when the user says "release", "cut a release", "start a release", "git flow release", or "bump the version".
+name: gitflow-release-start
+version: 1.0.0
+description: Start a git flow release for an Enterspeed project: reads version from azure-pipeline.yaml, proposes a semantic bump from git log, creates the release branch, updates the pipeline version, and opens PRs to master and develop. Use when the user says "release", "cut a release", "start a release", "git flow release", or "bump the version". Follow up with the gitflow-release-finish skill once both PRs are merged.
 ---
 
-# Git Flow Release
+# Git Flow Release — Start
 
-Automates the full git flow release process: reads the current semantic version from `azure-pipeline.yaml`, proposes a version bump based on unreleased commits, creates a release branch, updates the pipeline version, opens PRs to master and develop, then cleans up locally and tags after both PRs merge.
+Handles the first half of the git flow release process: proposes a version bump, creates the release branch, updates `azure-pipeline.yaml`, and opens PRs to master and develop. Once both PRs are merged, run the **gitflow-release-finish** skill to clean up locally and push the tag.
 
 > **Stop on any error** — if any step fails unexpectedly, report the full error output to the user and do not proceed to the next step.
 
@@ -39,6 +39,15 @@ gh --version
 
 If not installed, stop and tell the user:
 > "GitHub CLI (`gh`) is not installed. Install it with `brew install gh` and authenticate with `gh auth login` first."
+
+Verify git user identity is configured:
+
+```bash
+git config user.name && git config user.email
+```
+
+If either fails, stop and tell the user:
+> "Git user identity is not configured. Set it with `git config user.name 'Your Name'` and `git config user.email 'you@enterspeed.com'`."
 
 Verify the working directory is clean:
 
@@ -166,7 +175,7 @@ This creates and checks out `release/<version>` from `develop`. If it fails, sto
 
 ## Step 4 — Update pipeline file and commit
 
-Split `<version>` into components and export them as shell variables, then run the update script using those variables — no manual placeholder replacement needed:
+Split `<version>` into components and export them as shell variables, then run the update script — no manual placeholder replacement needed:
 
 ```bash
 MAJOR=<major> MINOR=<minor> PATCH=<patch> PIPELINE_FILE="$PIPELINE_FILE" python3 -c "
@@ -207,7 +216,7 @@ Push the release branch:
 git push origin release/<version>
 ```
 
-Open two pull requests. Substitute the actual version string for `<version>` in each command before running. Capture the returned URL to extract the PR number.
+Open two pull requests. Use `--json url --jq '.url'` to reliably capture the PR URL. Substitute the actual version string for `<version>` before running.
 
 **PR 1 — release → master** (the production merge):
 ```bash
@@ -222,9 +231,10 @@ Bumps version to \`<version>\` in \`$PIPELINE_FILE\`.
 ### Checklist
 - [ ] Version variables updated correctly in \`$PIPELINE_FILE\`
 - [ ] CI passes on the release branch
-- [ ] Reviewed and approved")
+- [ ] Reviewed and approved" \
+  --json url --jq '.url')
 MASTER_PR_NUMBER=$(basename "$MASTER_PR_URL")
-echo "Master PR: $MASTER_PR_URL (number: $MASTER_PR_NUMBER)"
+echo "Master PR: $MASTER_PR_URL"
 ```
 
 **PR 2 — release → develop** (the back-merge):
@@ -233,69 +243,24 @@ DEVELOP_PR_URL=$(gh pr create \
   --base develop \
   --head "release/<version>" \
   --title "Back-merge release <version> into develop" \
-  --body "Merges release branch back into develop after the <version> release.")
+  --body "Merges release branch back into develop after the <version> release." \
+  --json url --jq '.url')
 DEVELOP_PR_NUMBER=$(basename "$DEVELOP_PR_URL")
-echo "Develop PR: $DEVELOP_PR_URL (number: $DEVELOP_PR_NUMBER)"
+echo "Develop PR: $DEVELOP_PR_URL"
 ```
 
-Store both PR numbers — they are needed in Step 6. Show the user both URLs, then say:
+If either command fails, stop and report the error.
+
+Show the user both URLs, then say:
 > "Two PRs are open:
-> - **Master PR**: `$MASTER_PR_URL`
-> - **Develop PR**: `$DEVELOP_PR_URL`
+> - **Master PR**: `$MASTER_PR_URL` (#`$MASTER_PR_NUMBER`)
+> - **Develop PR**: `$DEVELOP_PR_URL` (#`$DEVELOP_PR_NUMBER`)
 >
-> Merge the **master PR first**, then the **develop PR**. Reply here when both are merged and I'll clean up locally and create the release tag."
-
-Wait for the user to reply that both PRs are merged before continuing.
-
----
-
-## Step 6 — Local cleanup and tagging
-
-Wait for the user to confirm both PRs are merged. Before proceeding, verify using the PR numbers captured in Step 5:
-
-```bash
-gh pr view "$MASTER_PR_NUMBER" --json state --jq '.state'
-gh pr view "$DEVELOP_PR_NUMBER" --json state --jq '.state'
-```
-
-Both must return `MERGED`. If either returns `OPEN` or `CLOSED`, tell the user and stop:
-> "The PR doesn't appear to be merged yet. Please merge it on GitHub and let me know when done."
-
-Pull the updated branches:
-
-```bash
-git checkout master && git pull origin master
-git checkout develop && git pull origin develop
-```
-
-Delete the local release branch (the remote is deleted by GitHub on merge). Use `-D` since the branch was merged via GitHub PRs and git may not recognise it as fully merged locally:
-
-```bash
-git branch -D release/<version>
-```
-
-Check that the tag does not already exist before creating it:
-
-```bash
-git tag -l "<version>"
-```
-
-If the tag already exists, tell the user and skip tag creation. Otherwise, tag the current master HEAD and push:
-
-```bash
-git tag <version> $(git rev-parse master)
-git push origin <version>
-```
-
-Show the user a final summary:
-
-```
-Release <version> complete:
-  - master: updated and tagged <version>
-  - develop: back-merged
-  - Local release branch: deleted
-  - Tag <version>: pushed to origin
-```
+> Merge the **master PR first**, then the **develop PR**.
+>
+> Once both are merged, run the **gitflow-release-finish** skill and provide these PR numbers:
+> - Master PR: `$MASTER_PR_NUMBER`
+> - Develop PR: `$DEVELOP_PR_NUMBER`"
 
 ---
 
@@ -309,5 +274,3 @@ Release <version> complete:
   The release is fully undone with no impact on master or develop.
 
 - **After master PR merges but before develop PR**: do not skip the back-merge. Merge the develop PR (resolving any conflicts in GitHub if needed) — develop must stay in sync with master.
-
-- **After both PRs merge**: the release is complete. If you need to undo it, a revert commit on master is the safest path. Team coordination is required.
