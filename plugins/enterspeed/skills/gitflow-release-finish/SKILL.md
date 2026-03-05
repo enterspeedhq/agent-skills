@@ -19,16 +19,20 @@ Ask the user for:
 - The **version** that was released (e.g. `1.53.0` — digits only, no `v` prefix)
 - The **master PR number** and **develop PR number** from the gitflow-release-publish output
 
-Validate the version format before proceeding:
+Validate the version format and store all values in shell variables:
 
 ```bash
-if ! [[ "<version>" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+VERSION="<version>"
+if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   echo "Invalid version format. Must be N.N.N (e.g., 1.53.0, not v1.53.0)"
   exit 1
 fi
+
+MASTER_PR="<master-pr-number>"
+DEVELOP_PR="<develop-pr-number>"
 ```
 
-If validation fails, reject and re-prompt for the correct format.
+If validation fails, reject and re-prompt for the correct format. Use these variables (`$VERSION`, `$MASTER_PR`, `$DEVELOP_PR`) throughout all subsequent steps.
 
 ---
 
@@ -37,22 +41,22 @@ If validation fails, reject and re-prompt for the correct format.
 Check that the master PR is merged:
 
 ```bash
-gh pr view <master-pr-number> --json state --jq '.state'
+gh pr view "$MASTER_PR" --json state --jq '.state'
 ```
 
 Check that the develop PR is merged:
 
 ```bash
-gh pr view <develop-pr-number> --json state --jq '.state'
+gh pr view "$DEVELOP_PR" --json state --jq '.state'
 ```
 
 Both must return `MERGED`. If either returns `OPEN`, stop and tell the user:
 
-> "PR #`<number>` is not merged. Merge it on GitHub and run this skill again."
+> "PR #`$MASTER_PR` (or `#$DEVELOP_PR`) is not merged yet. Merge it on GitHub first. Once merged, you can re-run this skill with the same PR numbers."
 
 If either returns `CLOSED` (abandoned/rejected), stop and tell the user:
 
-> "PR #`<number>` was closed without merging. Please check what happened — you may need to reopen it or open a new PR from `release/<version>`."
+> "PR #`$MASTER_PR` (or `#$DEVELOP_PR`) was closed without merging. You'll need to investigate what happened. This workflow cannot be recovered automatically — consult your team before proceeding."
 
 ---
 
@@ -72,13 +76,13 @@ If either command fails, stop and report the error.
 The remote release branch was deleted by GitHub on merge. Check if the local copy still exists before deleting:
 
 ```bash
-git branch --list "release/<version>"
+git branch --list "release/$VERSION"
 ```
 
 If it returns output, delete it with `-D` (force delete is required because the remote deletion doesn't update the local tracking ref automatically):
 
 ```bash
-git branch -D release/<version>
+git branch -D "release/$VERSION"
 ```
 
 If it returns nothing, the branch was already deleted locally — continue to Step 4.
@@ -95,54 +99,53 @@ git rev-parse --abbrev-ref HEAD
 
 If the output is not `master`, run `git checkout master` first.
 
-### Check if tag already exists locally
+### Tag creation decision tree
 
-Check that the tag does not already exist:
+Follow this logic to create or verify the tag:
 
-```bash
-git tag -l "<version>"
-```
+1. **Check if tag exists locally:**
 
-If the tag already exists, do not skip silently — first verify it points to the correct commit:
+   ```bash
+   git tag -l "$VERSION"
+   ```
 
-```bash
-git show <version> --oneline
-```
+2. **If tag does NOT exist** → Create and push it:
 
-If it points to the expected master HEAD, the local tag is correct. Check whether it already exists on the remote:
+   ```bash
+   git tag "$VERSION" master
+   git push origin "$VERSION"
+   ```
 
-```bash
-git ls-remote --tags origin <version>
-```
+   Then skip to "Verify tag on remote" below.
 
-If it's already on the remote, skip the push — the release tag is already published. If it's not on the remote, push it:
+3. **If tag DOES exist** → Verify it points to master HEAD:
 
-```bash
-git push origin <version>
-```
+   ```bash
+   git rev-parse "$VERSION"
+   git rev-parse master
+   ```
 
-If the tag points to a **different** commit, stop and tell the user:
+   - **If they match** → Tag is correct. Check if it's on remote:
+     ```bash
+     git ls-remote --tags origin "$VERSION"
+     ```
 
-> "Tag `<version>` already exists but points to an unexpected commit. Investigate before proceeding — do not overwrite the tag."
-
-If the tag does not exist at all, create and push it:
-
-```bash
-git tag <version> master
-git push origin <version>
-```
+     - If on remote → Skip push (already published)
+     - If not on remote → Push it: `git push origin "$VERSION"`
+   - **If they don't match** → Stop and tell the user:
+     > "Tag `$VERSION` already exists locally but points to a different commit than master HEAD. Investigate before proceeding — do not overwrite the tag."
 
 ### Verify tag on remote
 
 Confirm the tag exists on GitHub:
 
 ```bash
-git ls-remote --tags origin <version>
+git ls-remote --tags origin "$VERSION"
 ```
 
 If this returns nothing, stop and tell the user:
 
-> "Tag `<version>` was not found on the remote. The push may have failed. Check your permissions and network connection, then try pushing again with `git push origin <version>`."
+> "Tag `$VERSION` was not found on the remote. The push may have failed. Check your permissions and network connection, then try pushing again with `git push origin $VERSION`."
 
 ---
 
@@ -151,12 +154,14 @@ If this returns nothing, stop and tell the user:
 Show the user a final summary:
 
 ```
-Release <version> complete:
-  - master: updated and tagged <version>
-  - develop: back-merged
+Release $VERSION complete:
+  - master: updated and tagged $VERSION
+  - develop: back-merged (via develop PR merge)
   - Local release branch: deleted
-  - Tag <version>: pushed to origin
+  - Tag $VERSION: pushed to origin
 ```
+
+> **Note**: The back-merge to develop was completed when you merged the develop PR on GitHub. No additional merge step is needed.
 
 ---
 

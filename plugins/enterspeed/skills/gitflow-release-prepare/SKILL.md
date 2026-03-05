@@ -73,17 +73,23 @@ List real commits (excluding merges) since the last tag:
 git log <last-tag>..HEAD --no-merges --oneline
 ```
 
+If this command fails, stop and report the error:
+
+> "Failed to retrieve commit history. Check your network connection and ensure the repository is accessible."
+
 If no tags exist, list the most recent commits:
 
 ```bash
 git log --no-merges --oneline -20
 ```
 
-Always run a full log to catch `BREAKING CHANGE` in commit footers (this searches commit bodies, which the oneline format doesn't show):
+Before proposing a bump, always run a full log to search commit bodies for `BREAKING CHANGE` (the oneline format above only shows commit subjects):
 
 ```bash
 git log <last-tag>..HEAD --no-merges --format="%B"
 ```
+
+If this command fails, stop and report the error.
 
 If a tag exists but no commits are found since it, check if develop and master are on the same commit:
 
@@ -100,7 +106,9 @@ If they don't match, tell the user:
 
 > "No commits found since the last release (`<last-tag>`) on develop. There may be nothing to release. Should I still propose a patch bump (`{major}.{minor}.{patch+1}`), or skip the release?"
 
-Stop and wait for their answer.
+Stop and wait for their answer. If no response is received within a reasonable time (e.g., 5 minutes of inactivity), stop and tell the user:
+
+> "No response received. Please re-run this skill when you're ready to continue."
 
 ---
 
@@ -134,7 +142,20 @@ Proposed bump: minor → 1.53.0
 
 Ask: "Should I proceed with version `1.53.0`, or would you like a different version? (Must be `MAJOR.MINOR.PATCH`)"
 
-Validate any user-provided version matches the pattern `N.N.N`. If the format is invalid, reject it and re-prompt.
+Validate any user-provided version:
+
+1. Format must match `N.N.N` pattern (three numeric parts separated by dots)
+2. Version must represent a valid semantic bump from the current version:
+   - Cannot be lower than current version
+   - Cannot skip versions (e.g., can't go from 1.52.2 to 1.55.0 without explanation)
+
+If the format is invalid or the bump logic seems wrong, reject it and re-prompt:
+
+> "Version `X.Y.Z` doesn't look right. It should be higher than `{current}` and follow semantic versioning. Please provide `MAJOR.MINOR.PATCH` (e.g., 1.53.0)."
+
+If no response is received within a reasonable time, stop and tell the user:
+
+> "No response received. Please re-run this skill when you're ready to continue."
 
 Once confirmed, tell the user:
 

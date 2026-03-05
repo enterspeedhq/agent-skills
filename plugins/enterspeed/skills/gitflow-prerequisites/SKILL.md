@@ -1,7 +1,7 @@
 ---
 name: gitflow-prerequisites
 version: 1.1.0
-description: Always invoke before gitflow-release-* or gitflow-hotfix-* skills. Verifies git flow installation, initialisation, git user identity, clean working directory, and branch state.
+description: Invoke automatically at the start of any gitflow-release-* or gitflow-hotfix-* workflow. Verifies git flow installation, initialisation, git user identity, clean working directory, and branch state.
 ---
 
 # Git Flow — Prerequisites
@@ -52,7 +52,7 @@ git config user.email
 
 If this fails, stop and tell the user:
 
-> "Git user.email is not configured. Set it with `git config user.email 'you@enterspeed.com'`."
+> "Git user.email is not configured. Set it with `git config user.email 'your.email@example.com'`."
 
 ---
 
@@ -82,4 +82,8 @@ If this fails, stop and tell the user:
 
 ## Done
 
-All prerequisites passed successfully. Report success to the user and control returns to the calling skill. This skill does not return any value — it simply stops on any failure. If you reach this point, all checks have passed and the calling skill should continue with its next step.
+All prerequisites passed successfully. Report success to the user:
+
+> "All prerequisites verified. Continuing with the release workflow..."
+
+Control returns to the calling skill with an implicit success status (no error means success). The calling skill should proceed to its next step immediately without checking for any return value or status variable.

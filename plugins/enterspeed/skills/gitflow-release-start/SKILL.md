@@ -14,7 +14,18 @@ Creates the release branch, updates `azure-pipeline.yaml` with the confirmed ver
 
 ## Input
 
-Ask the user for the confirmed version to release (e.g. `1.53.0`). Validate it matches the pattern `N.N.N` — reject and re-prompt if the format is invalid. Use this as `<version>` for all subsequent steps.
+Ask the user for the confirmed version to release. Format must be `N.N.N` (three numeric parts separated by dots, e.g., `1.53.0`).
+
+Validate the format before proceeding:
+
+```bash
+if ! [[ "<version>" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "Invalid version format. Must be N.N.N (e.g., 1.53.0 is valid, v1.53.0 or 1.53 are invalid)"
+  exit 1
+fi
+```
+
+Reject and re-prompt if the format is invalid. Use this as `<version>` for all subsequent steps.
 
 If the user hasn't run **gitflow-release-prepare** yet, suggest they do so first to review the proposed version.
 
@@ -90,9 +101,9 @@ This creates and checks out `release/<version>` from `develop`. If it fails, sto
 
 ## Step 4 — Update pipeline file and commit
 
-> **Note**: This step uses the `update_version.py` script located in this skill's `scripts/` directory. The Enterspeed plugin installer places the script at the path shown below. If the script is not found, verify the plugin is properly installed.
+> **Note**: This step uses an external Python script (`update_version.py`) to separate file manipulation logic from skill instructions. This keeps the skill focused on orchestration while the script handles YAML parsing. The Enterspeed plugin installer places the script at the path shown below.
 
-Locate the update script. If you're running this skill through the Enterspeed plugin, the script should be at:
+Locate the update script:
 
 ```
 .claude-plugin/plugins/enterspeed/skills/gitflow-release-start/scripts/update_version.py
@@ -141,7 +152,7 @@ Then show the relevant section of the file for debugging:
 grep -B2 -A2 -E '^\s*(majorVersion|minorVersion|patchVersion):' "$PIPELINE_FILE"
 ```
 
-Show the user the updated lines and ask: "The pipeline file has been updated to `<version>`. Ready to commit and proceed to publishing?"
+Show the user the updated lines and ask: "The pipeline file has been updated to `<version>`. Ready to commit? (Note: This only commits locally—publishing happens in the next skill.)"
 
 If the user confirms, commit:
 
@@ -156,7 +167,7 @@ If the user declines:
 - The pipeline file changes are uncommitted (you can see them with `git diff`)
 - Options:
   1. If they want to adjust the version, revert the file changes (`git checkout "$PIPELINE_FILE"`) and re-run this skill with a different version
-  2. If they want to abort completely, follow the "Before committing" cleanup instructions below
+  2. If they want to abort completely, follow the "Before committing (Step 4)" cleanup instructions below
 
 ---
 
@@ -179,7 +190,7 @@ Tell the user:
 
   This removes the release branch cleanly. Any uncommitted file changes will remain; reset them with `git checkout <file>` if needed.
 
-- **After committing but before publishing**: The release branch with its commit exists **locally only** — no changes have been pushed to GitHub, so there's no impact on master, develop, or remote branches. At this point:
+- **After committing but before publishing (between Step 4 and gitflow-release-publish)**: The release branch with its commit exists **locally only** — no changes have been pushed to GitHub, so there's no impact on master, develop, or remote branches. At this point:
   - **Current state**: You have a local `release/<version>` branch with the version commit
   - **No remote impact**: Nothing has been pushed yet
 
@@ -192,4 +203,4 @@ Tell the user:
      ```
      This is safe because nothing has been pushed yet. You can re-run this skill to start fresh.
 
-- **After an interrupted publish**: If you've started **gitflow-release-publish** but it failed mid-way, see the rollback instructions in that skill for proper cleanup.
+- **After starting gitflow-release-publish**: If you've started **gitflow-release-publish** but it failed mid-way, see the rollback instructions in that skill for proper cleanup.
