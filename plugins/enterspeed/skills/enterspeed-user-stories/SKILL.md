@@ -1,6 +1,7 @@
 ---
 name: enterspeed-user-stories
-description: Generate well-structured user stories for Enterspeed using the standard team template. Use when someone describes a feature, capability, or user role + goal and needs a formatted user story. Works from rough ideas or specific role+goal inputs.
+version: 1.0.0
+description: Generate well-structured user stories for Enterspeed using the standard team template. Use when someone describes a feature, capability, or user role + goal and needs a formatted user story. Works from rough ideas or specific role+goal inputs. Do not use for bug fixes, technical debt, or retrospective analysis.
 ---
 
 # Enterspeed User Story Generator
@@ -17,7 +18,7 @@ Both are valid starting points. Work with whatever is given.
 
 ## Your Job
 
-1. **Generate a complete user story draft immediately** — do not ask questions first.
+1. **Generate a complete user story draft immediately** based on what's provided.
 2. **List your assumptions** clearly at the end, so the user knows what you inferred and can correct you.
 3. Use the Enterspeed template below exactly — preserve all emoji headers, formatting, and checkboxes.
 
@@ -60,7 +61,7 @@ Both are valid starting points. Work with whatever is given.
 ## Section Rules
 
 - **🎯 User Story** — Always included. If only a rough idea is given, infer a sensible user role.
-- **✅ Acceptance Criteria** — Always included. Write at least 3 criteria: a happy path, an edge case, and an error/failure scenario.
+- **✅ Acceptance Criteria** — Always included. Write at least 3 criteria: a happy path, an edge case, and an error/failure scenario. In the Enterspeed context, edge cases include things like missing or malformed source data (e.g. empty SKU, null field), large result sets, or schema mismatches.
 - **🔒 Security** — Always included. For most stories, keep it simple: state that security was considered and assessed as low risk. Only escalate to a brief description of the specific risk if the feature involves authentication, mutations, sensitive data, or access control.
 - **🔧 Tech Notes** — Optional. Include if the input mentions technical details (endpoints, components, filters). Otherwise leave the section with a placeholder.
 - **📊 Success Criteria** — Always included. Write a concrete, measurable definition of done — not vague language like "works correctly".
@@ -68,7 +69,7 @@ Both are valid starting points. Work with whatever is given.
 
 ## Assumptions Block
 
-After the story, add a section like this:
+After the story, add a section like this. Each assumption should be a **concise single line** — not a full paragraph.
 
 ---
 
