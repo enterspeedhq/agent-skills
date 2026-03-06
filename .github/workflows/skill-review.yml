@@ -28,7 +28,7 @@ jobs:
       - name: Check version bump
         id: version
         run: |
-          BUMPED=$(git diff origin/main...HEAD -- .claude-plugin/marketplace.json | grep '+"version"' || true)
+          BUMPED=$(git diff origin/main...HEAD -- .claude-plugin/marketplace.json | grep '^+.*"version"' || true)
           if [ -z "$BUMPED" ]; then
             echo "bumped=false" >> $GITHUB_OUTPUT
           else
