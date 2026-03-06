@@ -25,7 +25,7 @@ Extract from the user's message:
 | What the user says | Action |
 |--------------------|--------|
 | "approve", "looks good", "LGTM" | `--approve` |
-| "request changes", "needs work", "not ready", "reject" | `--request-changes` |
+| "request changes", "needs work", "not ready", "reject" | `--request-changes` (note: GitHub has no "reject" — this is the closest equivalent) |
 | "comment", "leave a note", "just comment", "no verdict" | `--comment` |
 
 If the action is ambiguous, ask before proceeding.
@@ -50,7 +50,7 @@ Do not block on style preferences that aren't covered by the team's style guide.
 
 **Approve** — Keep it short: 1–3 sentences. State what looks good and call out any non-blocking suggestions inline.
 
-**Request changes** — Be concise and actionable: 3–5 bullet points maximum. List only what *must* be fixed before merge. Do not repeat the full review — just the blockers. Prefix each item with a Conventional Comments label where helpful (e.g. `issue (blocking):`).
+**Request changes** — Be concise and actionable: 3–5 bullet points maximum. List only what *must* be fixed before merge. Do not repeat the full review — just the blockers. Prefix each item with a Conventional Comments label where helpful (e.g. `issue (blocking):`). If the user's draft exceeds 5 bullets, flag it and ask which items are truly blocking before submitting.
 
 **Comment** — Use when the verdict isn't clear yet, the review is informational, or you want to leave notes without blocking or approving. Freeform; match length to the content.
 
@@ -75,10 +75,10 @@ Do not use `\n` escape sequences or collapse the body to a single line — GitHu
 
 ## Step 3: Show and confirm
 
-Display the exact command you will run and the body text:
+Display the exact command you will run and the body text. Auto-detect the repo slug from `gh repo view --json nameWithOwner -q .nameWithOwner`:
 
 ```
-Action:  approve / request-changes / comment
+Action:  <approve / request-changes / comment>   ← one action only
 PR:      #<number>
 Repo:    <owner/repo>
 Body:
@@ -121,4 +121,4 @@ EOF
 
 Confirm success and show the URL returned by `gh`.
 
-If `gh` is not installed or the user is not authenticated, explain the error and direct them to run `brew install gh && gh auth login`. If the PR number is not found or access is denied, say so clearly and ask the user to verify the number and their repo permissions.
+If `gh` is not installed or the user is not authenticated, explain the error and direct them to run `brew install gh && gh auth login`. If the PR number is not found or access is denied, say so clearly and ask the user to verify the number and their repo permissions. If the user lacks review permissions (common on forks or private repos they don't own), note that they may need to be added as a collaborator or use a comment instead.

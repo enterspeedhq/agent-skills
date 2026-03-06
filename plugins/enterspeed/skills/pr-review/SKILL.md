@@ -58,7 +58,7 @@ Note which sections are relevant to the changes in this PR. You will use them to
 gh pr checkout <number>
 ```
 
-Check out the branch so it is available in the IDE for deeper exploration and discussion. This gives full file context — useful for navigating related code, understanding how changes fit into the broader codebase, and discussing the PR interactively with the reviewer.
+Check out the branch to get full file context. This enables relative path resolution for subsequent git commands, lets you navigate code beyond the diff (callers, related modules, tests), and makes the branch available in the IDE if the user wants to explore interactively.
 
 Skip only if the user explicitly says they just want a quick diff-based summary. If checkout fails (local branch conflict, network issue), proceed with diff-only review and note this to the user.
 
@@ -74,7 +74,7 @@ git diff origin/<base-branch>...HEAD
 
 This is cheaper than `gh pr diff` and benefits from the local checkout. For large diffs (~500+ lines, excluding generated files), focus on:
 1. New files added
-2. Core logic changes (skip pure formatting / generated files)
+2. Core logic changes — function signatures, control flow, data model modifications (skip test fixtures, lock files, generated code, and pure formatting changes)
 3. Test changes
 
 If doing a focused review due to diff size, say so explicitly in the summary: "This is a large diff — review focused on core logic and new files; formatting and generated files were skipped."
@@ -103,9 +103,9 @@ Present the review in this structure:
 
 #### What to pay attention to
 
-A prioritized list of things the reviewer should look at closely. Each item should be specific — reference file names and line ranges where possible.
+A list of things the reviewer should look at closely. Each item should be specific — reference file names and line ranges where possible.
 
-Review in this priority order (based on Google Engineering Practices):
+Consider these categories in rough priority order, but focus on what matters most to this PR (based on Google Engineering Practices):
 
 1. **Design** — Does the overall approach make sense? Does this change belong here? Are component interactions sensible?
 2. **Functionality** — Does the code do what it's supposed to? Check edge cases, concurrency issues, and user-facing behavior.
@@ -125,7 +125,9 @@ Only include categories where something stands out. Skip the rest.
 
 #### Checklist alignment
 
-If a PR template (`.github/PULL_REQUEST_TEMPLATE.md`) exists in the repo, check whether the PR description appears to have addressed each checklist item. For any that look unanswered, flag them as `question (non-blocking):` — checklist gaps are rarely merge blockers but the author should confirm intentionality.
+If a PR template (`.github/PULL_REQUEST_TEMPLATE.md`) exists in the repo, check whether the PR description appears to have addressed each checklist item:
+- **Unanswered / skipped** — flag as `question (non-blocking):` and ask the author to confirm intentionality
+- **Clearly violated** (e.g. checklist says "tests required" and there are none) — flag as `issue (blocking):`
 
 ---
 
