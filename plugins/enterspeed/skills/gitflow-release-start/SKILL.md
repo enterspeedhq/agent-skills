@@ -39,15 +39,15 @@ Run the **gitflow-prerequisites** skill first. If any check fails, stop — do n
 
 ## Step 1 — Find pipeline file
 
-Find `azure-pipeline.yaml` (or `azure-pipelines.yaml`):
+Find the pipeline file (checks both `.yaml` and `.yml` extensions):
 
 ```bash
-ls azure-pipeline.yaml 2>/dev/null || ls azure-pipelines.yaml 2>/dev/null
+PIPELINE_FILE=$(ls azure-pipelines.yaml 2>/dev/null || ls azure-pipelines.yml 2>/dev/null || ls azure-pipeline.yaml 2>/dev/null || ls azure-pipeline.yml 2>/dev/null)
 ```
 
-Store the found filename as `PIPELINE_FILE` and use it consistently in all subsequent steps. If neither file is found, stop and tell the user:
+Store the found filename as `PIPELINE_FILE` and use it consistently in all subsequent steps. If none of the four variants are found, stop and tell the user:
 
-> "Neither `azure-pipeline.yaml` nor `azure-pipelines.yaml` was found. Make sure you are in the project root directory."
+> "No pipeline file found (`azure-pipelines.yaml`, `azure-pipelines.yml`, `azure-pipeline.yaml`, or `azure-pipeline.yml`). Make sure you are in the project root directory."
 
 Verify the file contains all three version keys:
 

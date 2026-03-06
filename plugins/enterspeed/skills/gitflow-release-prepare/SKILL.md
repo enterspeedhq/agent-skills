@@ -18,13 +18,13 @@ Run the **gitflow-prerequisites** skill first. If any check fails, stop — do n
 
 ## Step 1 — Find pipeline file and read current version
 
-Find `azure-pipeline.yaml` (or `azure-pipelines.yaml`):
+Find the pipeline file (checks both `.yaml` and `.yml` extensions):
 
 ```bash
-ls azure-pipeline.yaml 2>/dev/null || ls azure-pipelines.yaml 2>/dev/null
+PIPELINE_FILE=$(ls azure-pipelines.yaml 2>/dev/null || ls azure-pipelines.yml 2>/dev/null || ls azure-pipeline.yaml 2>/dev/null || ls azure-pipeline.yml 2>/dev/null)
 ```
 
-Store the found filename as `PIPELINE_FILE`. If neither file is found, ask the user for the path. Verify the user-provided path exists before continuing.
+Store the found filename as `PIPELINE_FILE`. If none of the four variants are found, ask the user for the path. Verify the user-provided path exists before continuing.
 
 Extract the three version variables:
 

@@ -69,7 +69,7 @@ If this fails, stop and report the error.
 Find the pipeline file name to reference in the PR body:
 
 ```bash
-PIPELINE_FILE=$(ls azure-pipeline.yaml 2>/dev/null || ls azure-pipelines.yaml 2>/dev/null)
+PIPELINE_FILE=$(ls azure-pipelines.yaml 2>/dev/null || ls azure-pipelines.yml 2>/dev/null || ls azure-pipeline.yaml 2>/dev/null || ls azure-pipeline.yml 2>/dev/null)
 ```
 
 If neither file is found, use fallback with brief warning:
