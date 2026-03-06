@@ -1,5 +1,6 @@
 ---
 name: pr-submit-review
+version: 1.0.0
 description: Submit a GitHub PR review — approve, request changes, or comment. Use this skill whenever the user says "approve PR", "request changes on PR", "submit my review", "post a review", "approve this PR", "reject this PR", "leave a comment on the PR", or asks to publish feedback on a pull request. Requires the GitHub CLI (gh). Must be run from inside a git repository.
 ---
 
@@ -9,7 +10,7 @@ Submits a formal GitHub review on a pull request — approve, request changes, o
 
 ---
 
-## Step 1: Resolve intent
+## Step 1: Extract parameters
 
 Extract from the user's message:
 
@@ -47,18 +48,28 @@ Do not block on style preferences that aren't covered by the team's style guide.
 
 ### Body guidelines by action
 
-**Approve** — Keep it short. State what looks good and call out any non-blocking suggestions inline. A sentence or two is enough.
+**Approve** — Keep it short: 1–3 sentences. State what looks good and call out any non-blocking suggestions inline.
 
-**Request changes** — Be concise and actionable. List only what *must* be fixed before merge, using bullet points. Do not repeat the full review — just the blockers. Prefix each item with a Conventional Comments label where helpful (e.g. `issue (blocking):`).
+**Request changes** — Be concise and actionable: 3–5 bullet points maximum. List only what *must* be fixed before merge. Do not repeat the full review — just the blockers. Prefix each item with a Conventional Comments label where helpful (e.g. `issue (blocking):`).
 
 **Comment** — Use when the verdict isn't clear yet, the review is informational, or you want to leave notes without blocking or approving. Freeform; match length to the content.
 
 ### Formatting
 
-When showing the preview in chat, wrap lines at ~80 characters for
-readability. When submitting via `gh`, use clean markdown without hard
-line breaks — GitHub renders the body as markdown and hard wraps
-will appear as unintended line breaks.
+When showing the preview in chat, wrap lines at ~80 characters for readability.
+
+When submitting via `gh`, pass the body as a multiline heredoc so newlines are preserved correctly and GitHub renders it as proper markdown:
+
+```bash
+gh pr review <number> --approve --body "$(cat <<'EOF'
+Looks good overall. Clean implementation and well-tested.
+
+suggestion (non-blocking): The helper in utils.ts could be extracted to a shared module — it's duplicated in two places already.
+EOF
+)"
+```
+
+Do not use `\n` escape sequences or collapse the body to a single line — GitHub renders the body as markdown and hard-wrapped single-line strings produce unintended formatting.
 
 ---
 
@@ -79,6 +90,8 @@ Submit this review? (yes / edit body / cancel)
 
 Do not proceed until the user confirms. Reviews are visible to the whole team and cannot be unsent.
 
+If the user says **"edit body"**: present the current body and ask what they want to change. Apply their edits, show the updated preview, and ask for confirmation again. Repeat until they confirm or cancel.
+
 ---
 
 ## Step 4: Submit
@@ -97,3 +110,5 @@ gh pr review <number> --comment --body "<body>"
 ```
 
 Confirm success and show the URL returned by `gh`.
+
+If `gh` is not installed or the user is not authenticated, explain the error and direct them to run `brew install gh && gh auth login`. If the PR number is not found or access is denied, say so clearly and ask the user to verify the number and their repo permissions.

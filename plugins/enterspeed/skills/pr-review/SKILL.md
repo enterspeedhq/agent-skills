@@ -1,5 +1,6 @@
 ---
 name: pr-review
+version: 1.0.0
 description: Review a pull request in the current git repository. Use this skill whenever the user says "review PR", "review pull request", "check PR #N", "look at PR", "give me a PR review", or provides a PR number and asks for feedback. Requires the GitHub CLI (gh) to be installed. Must be run from inside a git repository.
 ---
 
@@ -31,6 +32,8 @@ gh pr diff <number> --name-only
 
 If `gh` is not available, tell the user to install the GitHub CLI (`brew install gh` / `gh auth login`) and stop.
 
+If the PR cannot be fetched (not found, already deleted, or permission denied), explain the error clearly and suggest the user verify the PR number and that they have access to the repository.
+
 ---
 
 ## Step 3: Look for best-practice docs in the repo
@@ -45,7 +48,7 @@ Search the repo root (and `.github/`) for any of these files. Read any that exis
 - `.github/PULL_REQUEST_TEMPLATE.md`
 - `CLAUDE.md` (team AI conventions)
 
-Note which sections are relevant to the changes in this PR. You will use them to calibrate your review.
+Note which sections are relevant to the changes in this PR. You will use them to calibrate your review. If none of these files exist, proceed without them — just review the diff against general engineering practices.
 
 ---
 
@@ -60,15 +63,17 @@ Read the full diff. For large diffs (>500 lines), focus on:
 2. Core logic changes (skip pure formatting / generated files)
 3. Test changes
 
+If you are doing a focused review due to diff size, say so explicitly in the summary: "This is a large diff — review focused on core logic and new files; formatting and generated files were skipped."
+
 ---
 
-## Step 5: Check out the PR branch (optional but recommended)
+## Step 5: Check out the PR branch
 
 ```bash
 gh pr checkout <number>
 ```
 
-If the user wants you to run tests or explore the code interactively, check it out. Otherwise the diff is sufficient for the review summary.
+Check out the branch so it is available in the IDE for deeper exploration and discussion. This gives full file context beyond the diff — useful for navigating related code, understanding how changes fit into the broader codebase, and discussing the PR interactively with the reviewer. Skip only if the user explicitly says they just want a quick diff-based summary.
 
 ---
 
@@ -114,7 +119,7 @@ Only include categories where something stands out. Skip the rest.
 
 #### Checklist alignment
 
-If a PR template (`.github/PULL_REQUEST_TEMPLATE.md`) exists in the repo, check whether the PR description appears to have addressed each checklist item. Flag any that look unanswered.
+If a PR template (`.github/PULL_REQUEST_TEMPLATE.md`) exists in the repo, check whether the PR description appears to have addressed each checklist item. For any that look unanswered, flag them as `question (non-blocking):` — checklist gaps are rarely merge blockers but the author should confirm intentionality.
 
 ---
 
