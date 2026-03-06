@@ -52,32 +52,38 @@ Note which sections are relevant to the changes in this PR. You will use them to
 
 ---
 
-## Step 4: Read the diff
-
-```bash
-gh pr diff <number>
-```
-
-Read the full diff. For large diffs (>500 lines), focus on:
-1. New files added
-2. Core logic changes (skip pure formatting / generated files)
-3. Test changes
-
-If you are doing a focused review due to diff size, say so explicitly in the summary: "This is a large diff — review focused on core logic and new files; formatting and generated files were skipped."
-
----
-
-## Step 5: Check out the PR branch
+## Step 4: Check out the PR branch
 
 ```bash
 gh pr checkout <number>
 ```
 
-Check out the branch so it is available in the IDE for deeper exploration and discussion. This gives full file context beyond the diff — useful for navigating related code, understanding how changes fit into the broader codebase, and discussing the PR interactively with the reviewer. Skip only if the user explicitly says they just want a quick diff-based summary.
+Check out the branch so it is available in the IDE for deeper exploration and discussion. This gives full file context — useful for navigating related code, understanding how changes fit into the broader codebase, and discussing the PR interactively with the reviewer.
+
+Skip only if the user explicitly says they just want a quick diff-based summary. If checkout fails (local branch conflict, network issue), proceed with diff-only review and note this to the user.
+
+---
+
+## Step 5: Read the diff
+
+After checkout, use git to diff against the base branch:
+
+```bash
+git diff origin/<base-branch>...HEAD
+```
+
+This is cheaper than `gh pr diff` and benefits from the local checkout. For large diffs (~500+ lines, excluding generated files), focus on:
+1. New files added
+2. Core logic changes (skip pure formatting / generated files)
+3. Test changes
+
+If doing a focused review due to diff size, say so explicitly in the summary: "This is a large diff — review focused on core logic and new files; formatting and generated files were skipped."
 
 ---
 
 ## Step 6: Deliver the review
+
+Use **Conventional Comments** labels throughout to make intent unambiguous (full reference in the Comment format section below). Each observation should be prefixed with the appropriate label, e.g. `issue (blocking):`, `suggestion (non-blocking):`, `nitpick:`.
 
 Present the review in this structure:
 

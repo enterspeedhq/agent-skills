@@ -18,7 +18,7 @@ Extract from the user's message:
 |-----------|----------------|
 | **PR number** | From the message, or ask if missing |
 | **Action** | `approve`, `request-changes`, or `comment` — infer from phrasing (see below) |
-| **Body** | From the conversation context (e.g. output of the `pr-review` skill), or ask |
+| **Body** | Check for prior review notes in the conversation. If none exist, ask the user what they want to say. |
 
 ### Mapping phrases to actions
 
@@ -80,6 +80,7 @@ Display the exact command you will run and the body text:
 ```
 Action:  approve / request-changes / comment
 PR:      #<number>
+Repo:    <owner/repo>
 Body:
 ---
 <body text>
@@ -96,17 +97,26 @@ If the user says **"edit body"**: present the current body and ask what they wan
 
 ## Step 4: Submit
 
-Run the confirmed command:
+Run the confirmed command using a heredoc so multiline markdown is preserved correctly:
 
 ```bash
 # Approve
-gh pr review <number> --approve --body "<body>"
+gh pr review <number> --approve --body "$(cat <<'EOF'
+<body>
+EOF
+)"
 
 # Request changes
-gh pr review <number> --request-changes --body "<body>"
+gh pr review <number> --request-changes --body "$(cat <<'EOF'
+<body>
+EOF
+)"
 
 # Comment
-gh pr review <number> --comment --body "<body>"
+gh pr review <number> --comment --body "$(cat <<'EOF'
+<body>
+EOF
+)"
 ```
 
 Confirm success and show the URL returned by `gh`.
