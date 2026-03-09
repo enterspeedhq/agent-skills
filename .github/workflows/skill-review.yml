@@ -7,7 +7,7 @@ on:
       - '.claude-plugin/marketplace.json'
 
 jobs:
-  review:
+  version-bump:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -17,35 +17,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get changed skill files
-        id: changed
-        run: |
-          SKILLS=$(git diff --name-only origin/main...HEAD | grep 'plugins/enterspeed/skills/.*/SKILL.md' || true)
-          echo "skills<<EOF" >> $GITHUB_OUTPUT
-          echo "$SKILLS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Check version bump
-        id: version
+      - name: Check marketplace version bump
         run: |
           BUMPED=$(git diff origin/main...HEAD -- .claude-plugin/marketplace.json | grep '^+.*"version"' || true)
           if [ -z "$BUMPED" ]; then
-            echo "bumped=false" >> $GITHUB_OUTPUT
-          else
-            echo "bumped=true" >> $GITHUB_OUTPUT
+            echo "::warning::Plugin version not bumped — remember to increment the version in .claude-plugin/marketplace.json"
           fi
-
-      - name: Install dependencies
-        if: steps.changed.outputs.skills != ''
-        run: pip install anthropic requests --quiet
-
-      - name: Review skills with Claude
-        if: steps.changed.outputs.skills != ''
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CHANGED_SKILLS: ${{ steps.changed.outputs.skills }}
-          VERSION_BUMPED: ${{ steps.version.outputs.bumped }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          REPO: ${{ github.repository }}
-        run: python3 .github/scripts/review_skills.py
