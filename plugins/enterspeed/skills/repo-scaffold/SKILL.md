@@ -69,19 +69,23 @@ Tell the user which files you'll generate before writing them. If there is nothi
 
 ## Step 5 — Generate the files
 
-Write each file. Keep them concise — useful on day one, not exhaustive. Use `TODO:` placeholders where the team needs to fill in specifics.
+Write each file. Keep them concise — useful on day one, not exhaustive. Use `TODO:` placeholders where the team needs to fill in specifics. Follow the reference standard for each file type.
 
 **README.md** — What it is, how to get started, link to CONTRIBUTING if it exists.
+Reference: [Standard Readme spec](https://github.com/RichardLitt/standard-readme). Core principle: answers "what is this and how do I start" — nothing more.
 
 **CONTRIBUTING.md** — How to contribute: branch conventions, PR process, any conventions from Step 3, link to DEVELOPMENT.md if it exists.
+Reference: [GitHub's contributing guide guidelines](https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/setting-guidelines-for-repository-contributors). Answer "what does a good PR look like here?" not just process steps.
 
 **DEVELOPMENT.md** — Prerequisites, install, run, test. Nothing else.
+Reference: Google's internal practice — every command must be copy-pasteable; a new hire should be running the project within 15 minutes using only this file.
 
 **CLAUDE.md** — Conventions to follow, patterns to avoid, tool preferences — anything from Step 3 that applies to AI-assisted work.
+Reference: [Anthropic's CLAUDE.md guidance](https://docs.anthropic.com/en/docs/claude-code/memory). Focus on things Claude cannot infer from code: negative constraints, naming conventions, tool preferences.
 
 **docs/architecture.md** — The decision from Step 3: what was decided, why, and what it rules out.
 
-**docs/adr/0001-\<title\>.md** — One file per decision, using this format:
+**docs/adr/0001-\<title\>.md** — One file per decision, using Michael Nygard's ADR format:
 ```
 # <number>. <title>
 
@@ -98,8 +102,10 @@ Status: Accepted
 <What does this make easier or harder?>
 ```
 Number sequentially from 0001. Once written, ADRs are immutable — supersede with a new ADR, don't edit the old one.
+Reference: [Documenting Architecture Decisions — Michael Nygard](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)
 
 **.github/PULL_REQUEST_TEMPLATE.md** — A short checklist of what every PR should include for this repo type.
+Reference: Checklists specific to this repo get used; generic ones ("did you test this?") get ignored. Focus on things a reviewer will check anyway.
 
 ---
 
