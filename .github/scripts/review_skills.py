@@ -53,11 +53,11 @@ for skill_path in changed_skills:
         f"Content:\n{content}\n"
         + (f"\nCompanion scripts (in the skill's scripts/ subdirectory):{scripts_content}\n" if scripts_content else "")
         + f"\nConventions used in this plugin:\n"
-        f"- The `version` field in frontmatter is intentional (used by this review bot) even though the Claude Code linter warns about it.\n"
+        f"- Skills are versioned via git — there is no `version` field in frontmatter. Do not flag its absence.\n"
         f"- Skills may reference companion scripts via `<skill-path>/scripts/<file>`. `<skill-path>` is the directory containing the SKILL.md file. This is the established pattern — do not flag it as unclear.\n"
         f"- Skills reference sibling skills by name (e.g. **gitflow-prerequisites**). This is valid inter-skill referencing — do not flag it as missing a call mechanism.\n\n"
         f"Check for:\n"
-        f"1. Frontmatter — are `name`, `description`, and `version` all present?\n"
+        f"1. Frontmatter — are `name` and `description` present?\n"
         f"2. Description quality — is it specific enough for Claude to know exactly when to trigger this skill? Does it include concrete trigger phrases or examples?\n"
         f"3. Skill body — is the instruction clear, focused, and actionable? Does it give Claude enough context to do its job?\n"
         f"4. Scope — is this skill focused on one thing, or trying to do too much?\n\n"
