@@ -21,5 +21,5 @@ A Claude Code skill marketplace for the Enterspeed team. Skills are markdown fil
 
 - Do not add a `version` field to skill frontmatter — skills are versioned via git, not frontmatter
 - Do not overwrite existing docs without reading them first
-- Do not open PRs or push commits unless explicitly asked
+- Do not open PRs or push commits unless explicitly asked or the active skill instructs it
 - Do not add enforcement or blocking behaviour to skills — that belongs in CI

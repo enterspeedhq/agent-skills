@@ -42,7 +42,12 @@ Ask only these, in a single message:
 3. **Architecture intent** — Any design decision worth capturing that a new developer would otherwise have to reverse-engineer?
 4. **Claude guidance** — Anything Claude should always do, or never do, in this repo?
 
-Skip any question the repo type makes irrelevant. Wait for answers before continuing.
+Skip questions the repo type makes irrelevant:
+- A content/config repo (no code) has no architecture to document — skip question 3
+- A repo with no CI or PR workflow has no need for question 2 if conventions are all in tooling
+- If the repo already has a `CLAUDE.md`, skip question 4
+
+Wait for answers before continuing.
 
 ---
 
