@@ -1,5 +1,18 @@
 # Contributing
 
+## Skill design philosophy
+
+Skills in this repo are designed to support judgment, not enforce compliance. That means:
+
+- Surface observations as questions, not verdicts — the developer decides
+- Check for pattern deviations and contextual fit, not just rule violations
+- Never block or gate — a skill that stops work to enforce a rule belongs in CI, not here
+- One skill, one job — if a step feels like a detour, it belongs elsewhere
+
+This shapes everything below. If a quality issue you're adding to a skill doesn't fit this framing, it probably belongs in a lint rule or CI check instead.
+
+---
+
 ## Adding or updating skills
 
 ### Before raising a PR
@@ -46,6 +59,10 @@ description: When to trigger this skill. Include concrete trigger phrases.
 **Implicit assumptions** — steps that assume the user has a tool installed, a branch checked out, or a file present without checking first. Verify before acting, or state the prerequisite clearly.
 
 **Over-specified output** — prescribing exact wording for every message makes the skill brittle and robotic. Specify structure and intent; leave phrasing to Claude unless the exact wording matters.
+
+### How guidelines evolve
+
+Guidelines here are written from observed friction, not theory. If the team debates the same question repeatedly, document the trade-off. If a quality issue appears consistently in pre-flight logs, consider formalizing it. If a guideline confuses more than it helps, fix or remove it — no approval process needed.
 
 ### Companion scripts
 
