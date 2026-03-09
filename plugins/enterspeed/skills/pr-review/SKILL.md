@@ -1,6 +1,5 @@
 ---
 name: pr-review
-version: 1.0.0
 description: Review a pull request in the current git repository. Use this skill whenever the user says "review PR", "review pull request", "check PR #N", "look at PR", "give me a PR review", or provides a PR number and asks for feedback. Requires the GitHub CLI (gh) to be installed. Must be run from inside a git repository.
 ---
 
@@ -36,23 +35,7 @@ If the PR cannot be fetched (not found, already deleted, or permission denied), 
 
 ---
 
-## Step 3: Check for pre-flight log
-
-Look for a file matching `.pre-flight/<head-branch>*.md` in the checked-out repo:
-
-```bash
-ls .pre-flight/<head-branch>* 2>/dev/null
-```
-
-If no log exists, note it once in the review output:
-
-> `note:` No pre-flight log found for this branch. The author may not have run a self-check before raising this PR.
-
-Do not block, flag, or repeat this. One line, move on.
-
----
-
-## Step 4: Look for best-practice docs in the repo
+## Step 3: Look for best-practice docs in the repo
 
 Search the repo root (and `.github/`) for any of these files. Read any that exist:
 
@@ -70,7 +53,7 @@ Note which sections are relevant to the changes in this PR. You will use them to
 
 ---
 
-## Step 5: Check out the PR branch
+## Step 4: Check out the PR branch
 
 ```bash
 gh pr checkout <number>
@@ -79,6 +62,22 @@ gh pr checkout <number>
 Check out the branch to get full file context. This enables relative path resolution for subsequent git commands, lets you navigate code beyond the diff (callers, related modules, tests), and makes the branch available in the IDE if the user wants to explore interactively.
 
 Skip only if the user explicitly says they just want a quick diff-based summary. If checkout fails (local branch conflict, network issue), proceed with diff-only review and note this to the user.
+
+---
+
+## Step 5: Check for pre-flight log
+
+With the branch checked out, look for a file matching `.pre-flight/<head-branch>*.md`:
+
+```bash
+ls .pre-flight/<head-branch>* 2>/dev/null
+```
+
+If no log exists, note it once in the review output:
+
+> `note:` No pre-flight log found for this branch. The author may not have run a self-check before raising this PR.
+
+Do not block, flag, or repeat this. One line, move on.
 
 ---
 
