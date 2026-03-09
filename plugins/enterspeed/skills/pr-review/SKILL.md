@@ -70,7 +70,7 @@ Note which sections are relevant to the changes in this PR. You will use them to
 
 ---
 
-## Step 4: Check out the PR branch
+## Step 5: Check out the PR branch
 
 ```bash
 gh pr checkout <number>
@@ -82,7 +82,7 @@ Skip only if the user explicitly says they just want a quick diff-based summary.
 
 ---
 
-## Step 5: Read the diff
+## Step 6: Read the diff
 
 After checkout, use git to diff against the base branch:
 
@@ -99,7 +99,7 @@ If doing a focused review due to diff size, say so explicitly in the summary: "T
 
 ---
 
-## Step 6: Deliver the review
+## Step 7: Deliver the review
 
 Use **Conventional Comments** labels throughout to make intent unambiguous (full reference in the Comment format section below). Each observation should be prefixed with the appropriate label, e.g. `issue (blocking):`, `suggestion (non-blocking):`, `nitpick:`.
 

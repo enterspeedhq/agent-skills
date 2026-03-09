@@ -10,6 +10,8 @@ Run pre-flight on your branch:
 claude "pre-flight"
 ```
 
+This requires the enterspeed plugin to be installed. If the skill isn't recognized, follow the setup instructions in the [README](README.md).
+
 Review the log written to `.pre-flight/` and edit out anything you don't want to share before committing it alongside your changes.
 
 ### Skill structure
