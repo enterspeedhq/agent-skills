@@ -36,7 +36,23 @@ If the PR cannot be fetched (not found, already deleted, or permission denied), 
 
 ---
 
-## Step 3: Look for best-practice docs in the repo
+## Step 3: Check for pre-flight log
+
+Look for a file matching `.pre-flight/<head-branch>*.md` in the checked-out repo:
+
+```bash
+ls .pre-flight/<head-branch>* 2>/dev/null
+```
+
+If no log exists, note it once in the review output:
+
+> `note:` No pre-flight log found for this branch. The author may not have run a self-check before raising this PR.
+
+Do not block, flag, or repeat this. One line, move on.
+
+---
+
+## Step 4: Look for best-practice docs in the repo
 
 Search the repo root (and `.github/`) for any of these files. Read any that exist:
 
@@ -45,6 +61,8 @@ Search the repo root (and `.github/`) for any of these files. Read any that exis
 - `CODE_STYLE.md`
 - `CODING_STANDARDS.md`
 - `docs/architecture.md`
+- `docs/architecture/` (any `.md` files within)
+- `docs/*-guidelines.md`
 - `.github/PULL_REQUEST_TEMPLATE.md`
 - `CLAUDE.md` (team AI conventions)
 
