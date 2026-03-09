@@ -20,8 +20,11 @@ Skills are added via pull requests. When a new skill is merged, the plugin versi
 To manually trigger an update:
 
 ```bash
+claude plugin marketplace update enterspeed
 claude plugin update enterspeed@enterspeed
 ```
+
+> **Note:** The marketplace name is `enterspeed` (not the full GitHub URL). Run both commands — the first refreshes the index from GitHub, the second installs the latest version.
 
 ## Contributing
 
