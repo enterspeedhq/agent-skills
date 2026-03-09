@@ -10,7 +10,7 @@
     {
       "name": "enterspeed",
       "description": "Shared AI agent skills for the Enterspeed team",
-      "version": "2.0.0",
+      "version": "1.5.0",
       "author": {
         "name": "Enterspeed",
         "email": "dev@enterspeed.com"
