@@ -1,6 +1,5 @@
 ---
 name: shortcut-demo-planner
-version: 1.0.0
 description: Plan a sprint or iteration demo using completed Shortcut stories. Use this skill whenever the user says "plan my demo", "prepare a demo", "make a demo from my stories", "what should I demo", "create a demo presentation from Shortcut", or any combination of Shortcut story review + demo planning. Orchestrates the shortcut-summarizer and revealjs-presentation skills: fetches stories, groups them into demo-friendly themes, suggests a demo order with talking points, and generates a Reveal.js presentation.
 ---
 
@@ -13,23 +12,20 @@ recent Shortcut stories into a structured demo plan and polished slide deck.
 
 ## Step 1: Fetch Stories
 
-Call the **shortcut-summarizer** skill with these parameters:
-- `--weeks 4`
-- `--state done`
-- `--owner me`
+Follow the **shortcut-summarizer** skill to fetch stories.
 
-Override based on what the user says. Save output to `/tmp/shortcut_stories.json`.
+Default parameters for demo planning:
+- weeks: 4
+- state: done
+- owner: me
 
-If the fetch fails (token not set, API error, or empty result), stop and tell the user:
-- Token not set → run the **shortcut-setup** skill first
-- API error → show the error message and suggest checking the token or trying again
-- No stories found → suggest widening the time range or checking the state filter
+Override based on what the user says.
 
 ---
 
 ## Step 2: Build the Demo Plan
 
-Read `/tmp/shortcut_stories.json` and produce a demo plan **in chat** (not as a file) before generating slides. If fewer than 3 non-chore stories are found, tell the user and ask if they want to proceed anyway or widen the filter. Structure the plan as:
+Using the stories returned by shortcut-summarizer, produce a demo plan in chat before generating slides. If fewer than 3 non-chore stories are found, tell the user and ask if they want to proceed anyway or widen the filter. Structure the plan as:
 
 ### Grouping logic (in priority order)
 1. **By epic** — if most stories have an `epic_id`, group by epic
