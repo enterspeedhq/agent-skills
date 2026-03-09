@@ -1,5 +1,6 @@
 ---
 name: shortcut-publisher
+version: 1.0.0
 description: Publish a user story to Shortcut for the Enterspeed Engineering team. Use when the user says "save to Shortcut", "create this in Shortcut", "add to Shortcut", "post to Shortcut", or "publish this story". Works on its own with a raw description, or after the enterspeed-user-stories skill has generated a formatted story.
 ---
 
@@ -10,9 +11,10 @@ Posts a user story to the Enterspeed Engineering team's current iteration in Sho
 ## How it works
 
 1. If a formatted user story is already present in the conversation (from the `enterspeed-user-stories` skill or typed by the user), use it directly.
-2. If only a raw feature description is given, first generate the story using the Enterspeed user story format (see `enterspeed-user-stories` skill), then publish.
-3. Extract the title — this is the **"As a [role], I want [capability]"** line from the story.
-4. Use the script below to post the story to Shortcut.
+2. If only a raw feature description is given, ask the user: "Would you like me to generate a formatted user story first using the Enterspeed template, or publish with this raw description?" Generate if they agree; otherwise use the raw description as the story body.
+3. Validate the story has an **"As a [role], I want [capability]"** line to use as the title. If it's missing or malformed, reformat it before proceeding.
+4. Extract the title — the **"As a [role], I want [capability]"** line.
+5. Use the script below to post the story to Shortcut.
 
 ## Running the script
 
@@ -107,10 +109,12 @@ python3 /tmp/create_story.py \
 ## Required environment variable
 
 The script reads `SHORTCUT_API_TOKEN` from the environment. If it is not set,
-follow the **shortcut-setup** skill for step-by-step instructions on securely
-storing and auto-loading the token via 1Password. Do not ask the user to export
+the script will print an error and exit. In that case, proactively guide the
+user to run the **shortcut-setup** skill first. Do not ask the user to export
 the token as plain text.
 
 ## After publishing
 
-Show the user the Shortcut story URL returned by the script so they can navigate directly to the created story.
+Read the script output and present the result to the user in a friendly way:
+- Show the story ID and the Shortcut URL as a clickable link
+- Confirm which iteration and team the story was added to (or note if these were not found)
