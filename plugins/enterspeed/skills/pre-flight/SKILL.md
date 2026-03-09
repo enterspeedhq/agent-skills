@@ -1,6 +1,6 @@
 ---
 name: pre-flight
-description: Run a self-check on your current changes before raising a PR. Use when the user says "pre-flight", "run pre-flight", "check my changes", "sanity check", "self-review", "am I ready to raise a PR", or "check my branch".
+description: Run a self-check on your current changes before raising a PR. Use when the user says "pre-flight", "run pre-flight", "check my changes", "sanity check", "self-review", "ready to PR", or "check my branch".
 ---
 
 # Pre-flight
@@ -34,6 +34,8 @@ git status --short
 If the branch is clean and nothing is ahead of base, tell the user:
 
 > "Nothing to check — no changes ahead of `<base-branch>`."
+
+Then stop. Do not continue to the next step.
 
 ---
 
@@ -125,7 +127,7 @@ mkdir -p .pre-flight
 The file format:
 
 ```markdown
-# <branch-name> — <YYYY-MM-DD HH:MM>
+# <branch-name> — <YYYY-MM-DD>
 
 ## Changed files
 <list of changed files, one per line>
