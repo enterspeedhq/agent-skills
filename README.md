@@ -40,7 +40,6 @@ The `SKILL.md` must start with:
 ---
 name: your-skill-name
 description: When to trigger this skill — be specific, this is what Claude reads to decide whether to use it.
-version: 1.0.0
 ---
 ```
 

@@ -1,6 +1,5 @@
 ---
 name: pr-review
-version: 1.0.0
 description: Review a pull request in the current git repository. Use this skill whenever the user says "review PR", "review pull request", "check PR #N", "look at PR", "give me a PR review", or provides a PR number and asks for feedback. Requires the GitHub CLI (gh) to be installed. Must be run from inside a git repository.
 ---
 
@@ -45,6 +44,8 @@ Search the repo root (and `.github/`) for any of these files. Read any that exis
 - `CODE_STYLE.md`
 - `CODING_STANDARDS.md`
 - `docs/architecture.md`
+- `docs/architecture/` (any `.md` files within)
+- `docs/*-guidelines.md`
 - `.github/PULL_REQUEST_TEMPLATE.md`
 - `CLAUDE.md` (team AI conventions)
 
@@ -64,7 +65,23 @@ Skip only if the user explicitly says they just want a quick diff-based summary.
 
 ---
 
-## Step 5: Read the diff
+## Step 5: Check for pre-flight log
+
+With the branch checked out, look for a file matching `.pre-flight/<head-branch>*.md`:
+
+```bash
+ls .pre-flight/<head-branch>* 2>/dev/null
+```
+
+If no log exists, note it once in the review output:
+
+> `note:` No pre-flight log found for this branch. The author may not have run a self-check before raising this PR.
+
+Do not block, flag, or repeat this. One line, move on.
+
+---
+
+## Step 6: Read the diff
 
 After checkout, use git to diff against the base branch:
 
@@ -81,7 +98,7 @@ If doing a focused review due to diff size, say so explicitly in the summary: "T
 
 ---
 
-## Step 6: Deliver the review
+## Step 7: Deliver the review
 
 Use **Conventional Comments** labels throughout to make intent unambiguous (full reference in the Comment format section below). Each observation should be prefixed with the appropriate label, e.g. `issue (blocking):`, `suggestion (non-blocking):`, `nitpick:`.
 
