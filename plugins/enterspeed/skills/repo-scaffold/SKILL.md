@@ -13,7 +13,7 @@ Reads the repository, infers what it can, asks only what it can't, then generate
 
 Scan the root and `.github/` for:
 
-- Existing docs: `README.md`, `CONTRIBUTING.md`, `DEVELOPMENT.md`, `CLAUDE.md`, `docs/architecture.md`, `.github/PULL_REQUEST_TEMPLATE.md`
+- Existing docs: `README.md`, `CONTRIBUTING.md`, `DEVELOPMENT.md`, `CLAUDE.md`, `docs/architecture.md`, `docs/adr/`, `.github/PULL_REQUEST_TEMPLATE.md`
 - Stack signals: `package.json`, `*.csproj`, `go.mod`, `requirements.txt`, `Makefile`, `docker-compose.yml`, `Dockerfile`
 - CI/CD: `.github/workflows/`, `azure-pipeline*.yaml`, `Jenkinsfile`
 - Existing top-level folder structure
@@ -39,7 +39,7 @@ Ask only these, in a single message:
 
 1. **Audience** — Internal team only, or also external contributors?
 2. **Conventions** — Any coding or workflow conventions not enforced by tooling?
-3. **Architecture intent** — Any design decision worth capturing that a new developer would otherwise have to reverse-engineer?
+3. **Architecture intent** — Any design decision worth capturing that a new developer would otherwise have to reverse-engineer? If yes: should decisions live in individual ADR files (`docs/adr/`) or a single `docs/architecture.md`? (ADRs suit teams that make decisions incrementally; a single doc suits simpler projects.)
 4. **Claude guidance** — Anything Claude should always do, or never do, in this repo?
 
 Skip questions the repo type makes irrelevant:
@@ -59,7 +59,8 @@ Wait for answers before continuing.
 | `CONTRIBUTING.md` | Missing |
 | `DEVELOPMENT.md` | Missing AND local setup is non-trivial |
 | `CLAUDE.md` | Missing AND user provided Claude guidance or conventions worth capturing |
-| `docs/architecture.md` | Missing AND user described an architecture decision worth recording |
+| `docs/architecture.md` | Missing AND user described a decision worth recording AND chose single-doc format |
+| `docs/adr/0001-<title>.md` | User chose ADR format — generate one ADR per decision described |
 | `.github/PULL_REQUEST_TEMPLATE.md` | Missing AND repo has an active PR workflow |
 
 Tell the user which files you'll generate before writing them. If there is nothing to generate, say so and stop.
@@ -79,6 +80,24 @@ Write each file. Keep them concise — useful on day one, not exhaustive. Use `T
 **CLAUDE.md** — Conventions to follow, patterns to avoid, tool preferences — anything from Step 3 that applies to AI-assisted work.
 
 **docs/architecture.md** — The decision from Step 3: what was decided, why, and what it rules out.
+
+**docs/adr/0001-\<title\>.md** — One file per decision, using this format:
+```
+# <number>. <title>
+
+Date: <YYYY-MM-DD>
+Status: Accepted
+
+## Context
+<What situation forced this decision?>
+
+## Decision
+<What was decided?>
+
+## Consequences
+<What does this make easier or harder?>
+```
+Number sequentially from 0001. Once written, ADRs are immutable — supersede with a new ADR, don't edit the old one.
 
 **.github/PULL_REQUEST_TEMPLATE.md** — A short checklist of what every PR should include for this repo type.
 
