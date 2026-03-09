@@ -34,12 +34,28 @@ for skill_path in changed_skills:
         content = f.read()
 
     skill_name = skill_path.split("/")[-2]
+    skill_dir = os.path.dirname(skill_path)
+
+    # Include any companion scripts from the scripts/ subdirectory
+    scripts_dir = os.path.join(skill_dir, "scripts")
+    scripts_content = ""
+    if os.path.isdir(scripts_dir):
+        for script_file in sorted(os.listdir(scripts_dir)):
+            script_path = os.path.join(scripts_dir, script_file)
+            if os.path.isfile(script_path):
+                with open(script_path) as f:
+                    scripts_content += f"\n\n### scripts/{script_file}\n```\n{f.read()}\n```"
 
     prompt = (
         f"Review this Claude Code skill file and give concise, actionable feedback.\n\n"
         f"Skill: {skill_name}\n"
         f"File: {skill_path}\n\n"
-        f"Content:\n{content}\n\n"
+        f"Content:\n{content}\n"
+        + (f"\nCompanion scripts (in the skill's scripts/ subdirectory):{scripts_content}\n" if scripts_content else "")
+        + f"\nConventions used in this plugin:\n"
+        f"- The `version` field in frontmatter is intentional (used by this review bot) even though the Claude Code linter warns about it.\n"
+        f"- Skills may reference companion scripts via `<skill-path>/scripts/<file>`. `<skill-path>` is the directory containing the SKILL.md file. This is the established pattern — do not flag it as unclear.\n"
+        f"- Skills reference sibling skills by name (e.g. **gitflow-prerequisites**). This is valid inter-skill referencing — do not flag it as missing a call mechanism.\n\n"
         f"Check for:\n"
         f"1. Frontmatter — are `name`, `description`, and `version` all present?\n"
         f"2. Description quality — is it specific enough for Claude to know exactly when to trigger this skill? Does it include concrete trigger phrases or examples?\n"
