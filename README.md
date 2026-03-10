@@ -30,11 +30,15 @@ claude plugin update enterspeed@enterspeed
 
 ### Skill file structure
 
-Every skill is a single markdown file with a frontmatter header:
+Every skill has a `SKILL.md` file and may include additional resources:
 
 ```
 plugins/enterspeed/skills/<skill-name>/
-└── SKILL.md
+├── SKILL.md                    # Required: skill definition
+├── scripts/                    # Optional: helper scripts
+│   └── <script-file>
+├── templates/                  # Optional: templates or config files
+└── <other-resources>           # Optional: test data, fixtures, etc.
 ```
 
 The `SKILL.md` must start with:

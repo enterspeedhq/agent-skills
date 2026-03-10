@@ -29,7 +29,9 @@ Review the log written to `.pre-flight/` and edit out anything you don't want to
 
 ### Skill structure
 
-Each skill lives in `plugins/enterspeed/skills/<skill-name>/SKILL.md`.
+Each skill lives in `plugins/enterspeed/skills/<skill-name>/SKILL.md`. The folder may also contain `scripts/`, templates, or other resources the skill needs. See [README — Skill file structure](README.md#skill-file-structure) for the full reference.
+
+For the official skill specification, see [Anthropic's skill documentation](https://docs.anthropic.com/en/docs/agents/skills).
 
 **Frontmatter** — two fields required:
 
@@ -75,3 +77,10 @@ Reference sibling skills by name in bold: **skill-name**. Claude resolves these 
 ### Plugin version
 
 Bump the version in `.claude-plugin/marketplace.json` when shipping any skill change. The CI will remind you if you forget.
+
+## References
+
+- [Anthropic's skill documentation](https://docs.anthropic.com/en/docs/agents/skills) — official skill specification
+- [Standard Readme](https://github.com/RichardLitt/standard-readme) — README structure and conventions
+- [GitHub contributing guidelines](https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/setting-guidelines-for-repository-contributors) — contribution docs best practices
+- [Architecture Decision Records](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions) — ADR format and rationale
