@@ -119,6 +119,8 @@ For each thing worth noting, write a short observation. Each observation must:
 
 Do not manufacture observations. If nothing stands out, that's a valid result.
 
+**Never raise** git workflow state as an observation — uncommitted changes, unstaged files, branch tracking status, and similar are not code observations and must not appear in the output or the log.
+
 ---
 
 ## Step 6: Close
