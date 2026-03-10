@@ -78,6 +78,24 @@ Reference sibling skills by name in bold: **skill-name**. Claude resolves these 
 
 Bump the version in `.claude-plugin/marketplace.json` when shipping any skill change. The CI will remind you if you forget.
 
+### Cross-platform compatibility
+
+Skills should work on Windows, macOS, and Linux where possible:
+
+**Shell commands (via Bash tool):**
+- Stick to POSIX-compatible commands (`git`, `grep`, `test`, basic file operations)
+- Avoid bash-specific features (process substitution, named pipes)
+- Assume `git`, `gh`, and common CLI tools are available
+
+**Bundled scripts (in `scripts/`):**
+- Use Python for non-trivial file parsing, editing, or validation (like version updates)
+- Use shell scripts only for simple glue code, and keep them POSIX-compatible
+- If a skill uses Python scripts, state `Python 3.8+` as a prerequisite in the skill's "Prerequisites" or "Requirements" section
+
+**Platform-specific tools:**
+- If a skill requires a platform-specific tool (e.g., `terraform`, `azure-cli`), document it clearly in the skill's prerequisites
+- Check for the tool's existence and provide a clear install link if it's missing
+
 ## References
 
 - [Anthropic's skill documentation](https://docs.anthropic.com/en/docs/agents/skills) — official skill specification

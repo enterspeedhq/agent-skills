@@ -35,6 +35,9 @@ If the user hasn't run **gitflow-release-prepare** yet, suggest they do so first
 
 Run the **gitflow-prerequisites** skill first. If any check fails, stop — do not continue.
 
+**Required:**
+- Python 3.8+ (for the `update_version.py` script)
+
 ---
 
 ## Step 1 — Find pipeline file
