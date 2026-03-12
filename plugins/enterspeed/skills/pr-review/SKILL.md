@@ -33,6 +33,20 @@ If `gh` is not available, tell the user to install the GitHub CLI (`brew install
 
 If the PR cannot be fetched (not found, already deleted, or permission denied), explain the error clearly and suggest the user verify the PR number and that they have access to the repository.
 
+**Story lookup:** Attempt to extract a Shortcut story ID by matching the pattern `sc-\d+` in `headRefName`.
+
+If not found there, scan the PR body and comments for the same pattern:
+
+```bash
+gh pr view <number> --json body,comments
+```
+
+If no match anywhere, skip all story steps silently. Do not mention it.
+
+If a story ID is found, call `stories-get-by-id` with the numeric part of the ID:
+- If the Shortcut MCP tool is unavailable or returns an error for any reason: skip silently, proceed as today
+- If the story is found: store the title, description, and acceptance criteria for use in Step 7
+
 ---
 
 ## Step 3: Look for best-practice docs in the repo
@@ -109,12 +123,15 @@ Present the review in this structure:
 ### PR #N — [Title]
 
 **Author:** [name] | **Branch:** `[head]` → `[base]` | **Size:** +[additions] / -[deletions] across [N] files
+*(If a story was fetched: `Story: sc-XXXX — [title]`)*
 
 ---
 
 #### Summary
 
 2–4 sentences describing what this PR does, why it exists (based on the description and diff), and what it changes at a high level.
+
+If a story was fetched: add a sentence on story alignment — does the diff appear to address the story goal and acceptance criteria? If there are apparent gaps, surface them as `question (non-blocking):` items under "What to pay attention to". If the PR title or description doesn't reflect the story, raise as `suggestion (non-blocking):`.
 
 ---
 

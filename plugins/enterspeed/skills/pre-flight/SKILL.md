@@ -39,6 +39,25 @@ Then stop. Do not continue to the next step.
 
 ---
 
+## Step 1.5: Check branch and look up story
+
+**Branch check:** If the current branch is `develop`, `main`, or `master`, note it as an early observation:
+
+> "`develop` — working directly on this branch intentional, or worth creating a feature branch (e.g. `feature/sc-XXXX/description`)?"
+
+Do not stop. Continue to the next step regardless.
+
+**Story lookup:** Attempt to extract a Shortcut story ID from the branch name by matching the pattern `sc-\d+` (e.g. `feature/sc-1234/some-feature` → `sc-1234`).
+
+If no match is found, skip the rest of this step silently. Do not mention it.
+
+If a story ID is found, call `stories-get-by-id` with the numeric part of the ID:
+- If the Shortcut MCP tool is unavailable or returns an error for any reason: skip silently, proceed as today
+- If the story is found: store the title, description, and acceptance criteria for use in Step 5. Show a single context line before the observations:
+  > `Story: sc-XXXX — [title]`
+
+---
+
 ## Step 2: Gauge the size
 
 Count changed files (excluding lock files and generated files):
@@ -95,8 +114,12 @@ For each thing worth noting, write a short observation. Each observation must:
 - Names that don't communicate what they hold or do: *"What does `data` contain at this point?"*
 - A change that touches more than its stated scope: *"This modifies the base class — anything else relies on this behavior?"*
 - Loose ends that may be unintentional: *"TODO on line 42 — for this PR or a follow-up?"*
+- Scope drift from the story (only if a story was fetched in Step 1.5): *"This change touches [X] — the story describes [Y]. Anything pulling scope wider, or is this intentional?"*
+- PR vs story mismatch (only if a story was fetched and a PR exists for this branch): check with `gh pr view --json title,body 2>/dev/null`. If the PR title or description doesn't appear to reflect the story: *"The PR title/description doesn't appear to reference [story title]. Anything to update there, or intentional?"*
 
 Do not manufacture observations. If nothing stands out, that's a valid result.
+
+**Never raise** git workflow state as an observation — uncommitted changes, unstaged files, branch tracking status, and similar are not code observations and must not appear in the output or the log.
 
 ---
 
