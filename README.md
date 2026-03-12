@@ -79,3 +79,67 @@ agent-skills/
             └── <skill-name>/
                 └── SKILL.md
 ```
+
+## Skills using Copilot
+
+GitHub Copilot automatically loads Agent Skills placed in any of the standard skill folders:
+
+*   **Project skills:**  
+    `.github/skills/`, `.claude/skills/`, `.agents/skills/` [\[github.com\]](https://github.com/github/awesome-copilot/blob/main/docs/README.skills.md)
+
+*   **Personal/global skills:**  
+    `~/.copilot/skills/`, `~/.claude/skills/`, `~/.agents/skills/` [\[github.com\]](https://github.com/microsoft/vscode/issues/97030)
+
+Place (or symlink) your `skills/` folder into one of these locations and Copilot will detect it automatically.
+
+
+## Skills in Rider with Copilot
+
+Rider supports Copilot Skills but **cannot add custom folders**.  
+You must use one of the standard Copilot skill directories.
+
+You can set this up in two ways:
+
+### **1. Link your repository skills (recommended)**
+
+If your skills live in a Git repo, create a symlink into one of the supported directories so changes update automatically.
+
+**Windows**
+
+```powershell
+cmd /c mklink /D "%USERPROFILE%\.copilot\skills\my-skills" "C:\path\to\repo\skills"
+```
+
+**macOS / Linux**
+
+```bash
+ln -s "/path/to/repo/skills" ~/.copilot/skills/my-skills
+```
+
+Restart Rider and the skills will load.
+
+
+### **2. Add your skills directly**
+
+Move your skill folders into:
+
+    ~/.copilot/skills/
+    ~/.claude/skills/
+    ~/.agents/skills/
+
+## Skills in VS Code with Copilot
+
+VS Code supports the same standard skill folders as Rider and additionally allows you to **add extra skill locations**.
+
+### **1. Use a symlink (recommended & universal)**
+
+Use the same symlink method as Rider to link your repo to a supported directory.
+
+### **2. Add a repository path through VS Code settings**
+
+1.  Open **Settings**
+2.  Search for **“Agent Skills”**
+3.  Open **Agent Skill Locations**
+4.  Add the folder where your `skills/` directory lives
+
+VS Code will now scan and load skills from that location. 
