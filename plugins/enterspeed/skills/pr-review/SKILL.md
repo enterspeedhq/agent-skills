@@ -141,7 +141,7 @@ A list of things the reviewer should look at closely. Each item should be specif
 
 Consider these categories in rough priority order, but focus on what matters most to this PR (based on Google Engineering Practices):
 
-1. **Design** — Does the overall approach make sense? Does this change belong here? Are component interactions sensible?
+1. **Design** — Does the overall approach make sense? Does this change belong here? Are component interactions sensible? Look for hardcoded constants that may need to vary by environment or behave differently between on-premise and multi-tenancy SaaS deployments.
 2. **Functionality** — Does the code do what it's supposed to? Check edge cases, concurrency issues, and user-facing behavior.
 3. **Complexity** — Is anything over-engineered or unnecessarily hard to follow? Watch for premature generalization or unused extensibility.
 4. **Tests** — Are there tests? Will they actually fail when the code breaks? Do they cover edge cases, not just the happy path?

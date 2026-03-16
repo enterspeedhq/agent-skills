@@ -52,6 +52,7 @@ Do not stop. Continue to the next step regardless.
 If no match is found, skip the rest of this step silently. Do not mention it.
 
 If a story ID is found, call `stories-get-by-id` with the numeric part of the ID:
+
 - If the Shortcut MCP tool is unavailable or returns an error for any reason: skip silently, proceed as today
 - If the story is found: store the title, description, and acceptance criteria for use in Step 5. Show a single context line before the observations:
   > `Story: sc-XXXX — [title]`
@@ -66,7 +67,7 @@ Count changed files (excluding lock files and generated files):
 - **Medium (15–50 files):** Read new files fully, sample the most-changed existing files, skip lock files, generated code, and formatting-only changes
 - **Large (50+ files):** Focus on new files and the heaviest changes; note if the PR appears to mix unrelated concerns
 
-State which mode briefly and move on: *"12 files — reading everything."*
+State which mode briefly and move on: _"12 files — reading everything."_
 
 ---
 
@@ -108,14 +109,15 @@ For each thing worth noting, write a short observation. Each observation must:
 
 **Things worth noticing** — only raise these when they genuinely stand out, not as a checklist:
 
-- Something differs from a documented team pattern: *"X uses Y — the team has landed on Z for this. Different approach intentional, or worth aligning?"*
-- Logic that's harder to follow than it needs to be: *"This function has four exit points. Anything driving that shape?"*
-- A logic path with no test coverage: *"This error case isn't covered. Happy to leave it, or worth a test?"*
-- Names that don't communicate what they hold or do: *"What does `data` contain at this point?"*
-- A change that touches more than its stated scope: *"This modifies the base class — anything else relies on this behavior?"*
-- Loose ends that may be unintentional: *"TODO on line 42 — for this PR or a follow-up?"*
-- Scope drift from the story (only if a story was fetched in Step 1.5): *"This change touches [X] — the story describes [Y]. Anything pulling scope wider, or is this intentional?"*
-- PR vs story mismatch (only if a story was fetched and a PR exists for this branch): check with `gh pr view --json title,body 2>/dev/null`. If the PR title or description doesn't appear to reflect the story: *"The PR title/description doesn't appear to reference [story title]. Anything to update there, or intentional?"*
+- Something differs from a documented team pattern: _"X uses Y — the team has landed on Z for this. Different approach intentional, or worth aligning?"_
+- Logic that's harder to follow than it needs to be: _"This function has four exit points. Anything driving that shape?"_
+- A logic path with no test coverage: _"This error case isn't covered. Happy to leave it, or worth a test?"_
+- Names that don't communicate what they hold or do: _"What does `data` contain at this point?"_
+- A change that touches more than its stated scope: _"This modifies the base class — anything else relies on this behavior?"_
+- Loose ends that may be unintentional: _"TODO on line 42 — for this PR or a follow-up?"_
+- A value hardcoded as a constant that might need to vary: _"This value is hardcoded as a constant. Does it need to differ between environments, or behave differently on-premise vs SaaS?"_
+- Scope drift from the story (only if a story was fetched in Step 1.5): _"This change touches [X] — the story describes [Y]. Anything pulling scope wider, or is this intentional?"_
+- PR vs story mismatch (only if a story was fetched and a PR exists for this branch): check with `gh pr view --json title,body 2>/dev/null`. If the PR title or description doesn't appear to reflect the story: _"The PR title/description doesn't appear to reference [story title]. Anything to update there, or intentional?"_
 
 Do not manufacture observations. If nothing stands out, that's a valid result.
 
@@ -153,9 +155,11 @@ The file format:
 # <branch-name> — <YYYY-MM-DD>
 
 ## Changed files
+
 <list of changed files, one per line>
 
 ## Observations
+
 <each observation exactly as shown to the developer, or "None." if nothing stood out>
 ```
 
