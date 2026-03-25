@@ -1,12 +1,13 @@
 ---
 name: gitflow-release-finish
-version: 1.2.0
-description: Finish a git flow release once both PRs are merged: verifies PR state, pulls master and develop, deletes the local release branch, creates and pushes the version tag. Use when the user says "finish the release", "once both PRs are merged", "after merging the PRs", or "tag the release". Always run after gitflow-release-publish. This is the final step in the release workflow.
+description: Finish a git flow release once the master PR is merged: verifies PR state, tags master, opens a back-merge PR from master to develop, and cleans up the release branch. Use when the user says "finish the release", "the master PR is merged", "after merging the PR", or "tag the release". Always run after gitflow-release-publish. This is the final step in the release workflow.
 ---
 
 # Git Flow Release — Finish
 
-Completes the release after the master and develop PRs (opened by **gitflow-release-publish**) have been merged. Verifies both are merged, syncs local branches, deletes the release branch, and pushes the version tag.
+Completes the release after the master PR (opened by **gitflow-release-publish**) has been merged. Verifies the merge, tags master, opens a back-merge PR from master to develop, and cleans up the release branch.
+
+The back-merge PR uses **master → develop** (not release → develop). This is critical — it ensures develop receives master's exact merge commit, keeping both branches' histories synchronized. Opening a separate PR from the release branch to develop would create divergent commit SHAs, causing merge conflicts in future releases.
 
 > **Stop on any error** — if any step fails unexpectedly, report the full error output to the user and do not proceed to the next step.
 
@@ -17,7 +18,7 @@ Completes the release after the master and develop PRs (opened by **gitflow-rele
 Ask the user for:
 
 - The **version** that was released (e.g. `1.53.0` — digits only, no `v` prefix)
-- The **master PR number** and **develop PR number** from the gitflow-release-publish output
+- The **master PR number** from the gitflow-release-publish output
 
 Validate the version format and store all values in shell variables:
 
@@ -29,79 +30,37 @@ if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
 fi
 
 MASTER_PR="<master-pr-number>"
-DEVELOP_PR="<develop-pr-number>"
 ```
 
-If validation fails, reject and re-prompt for the correct format. Use these variables (`$VERSION`, `$MASTER_PR`, `$DEVELOP_PR`) throughout all subsequent steps.
+If validation fails, reject and re-prompt for the correct format. Use these variables (`$VERSION`, `$MASTER_PR`) throughout all subsequent steps.
 
 ---
 
-## Step 1 — Verify both PRs are merged
-
-Check that the master PR is merged:
+## Step 1 — Verify master PR is merged
 
 ```bash
 gh pr view "$MASTER_PR" --json state --jq '.state'
 ```
 
-Check that the develop PR is merged:
+Must return `MERGED`. If it returns `OPEN`, stop and tell the user:
 
-```bash
-gh pr view "$DEVELOP_PR" --json state --jq '.state'
-```
+> "PR #`$MASTER_PR` is not merged yet. Merge it on GitHub first. Once merged, re-run this skill."
 
-Both must return `MERGED`. If either returns `OPEN`, stop and tell the user:
+If it returns `CLOSED` (abandoned/rejected), stop and tell the user:
 
-> "PR #`$MASTER_PR` (or `#$DEVELOP_PR`) is not merged yet. Merge it on GitHub first. Once merged, you can re-run this skill with the same PR numbers."
-
-If either returns `CLOSED` (abandoned/rejected), stop and tell the user:
-
-> "PR #`$MASTER_PR` (or `#$DEVELOP_PR`) was closed without merging. You'll need to investigate what happened. This workflow cannot be recovered automatically — consult your team before proceeding."
+> "PR #`$MASTER_PR` was closed without merging. Investigate what happened — this workflow cannot be recovered automatically. Consult your team before proceeding."
 
 ---
 
-## Step 2 — Pull updated branches
+## Step 2 — Pull master and tag
 
 ```bash
 git checkout master && git pull origin master
-git checkout develop && git pull origin develop
 ```
 
-If either command fails, stop and report the error.
-
----
-
-## Step 3 — Delete local release branch
-
-The remote release branch was deleted by GitHub on merge. Check if the local copy still exists before deleting:
-
-```bash
-git branch --list "release/$VERSION"
-```
-
-If it returns output, delete it with `-D` (force delete is required because the remote deletion doesn't update the local tracking ref automatically):
-
-```bash
-git branch -D "release/$VERSION"
-```
-
-If it returns nothing, the branch was already deleted locally — continue to Step 4.
-
----
-
-## Step 4 — Tag and push
-
-Confirm you are on master before tagging:
-
-```bash
-git rev-parse --abbrev-ref HEAD
-```
-
-If the output is not `master`, run `git checkout master` first.
+If this fails, stop and report the error.
 
 ### Tag creation decision tree
-
-Follow this logic to create or verify the tag:
 
 1. **Check if tag exists locally:**
 
@@ -137,8 +96,6 @@ Follow this logic to create or verify the tag:
 
 ### Verify tag on remote
 
-Confirm the tag exists on GitHub:
-
 ```bash
 git ls-remote --tags origin "$VERSION"
 ```
@@ -149,6 +106,68 @@ If this returns nothing, stop and tell the user:
 
 ---
 
+## Step 3 — Open back-merge PR (master → develop)
+
+This step merges master into develop via a PR, so develop receives the exact merge commit from the master PR. This keeps both branches' histories aligned.
+
+```bash
+gh pr create \
+  --base develop \
+  --head master \
+  --title "Back-merge release $VERSION into develop" \
+  --body "## Back-merge release $VERSION
+
+Merges master into develop after the \`$VERSION\` release. This keeps both branches in sync by giving develop the same merge commit that landed on master.
+
+### Checklist
+- [ ] No conflicts with develop
+- [ ] CI passes"
+```
+
+Capture the PR URL from the command output. Extract the PR number from the URL (the last path segment).
+
+If this fails, stop and tell the user:
+
+> "Failed to create the back-merge PR. The release is tagged on master (`$VERSION`), but develop has not been updated yet. You can create the PR manually on GitHub (base: develop, head: master) or run: `gh pr create --base develop --head master --title 'Back-merge release $VERSION into develop'`"
+
+Tell the user:
+
+> "Back-merge PR is open: `$DEVELOP_PR_URL` (#`$DEVELOP_PR_NUMBER`). Please merge it to sync develop with master. Let me know once it's merged so I can finish the cleanup."
+
+Wait for the user to confirm the develop PR is merged before continuing. Do not proceed to Step 4 until confirmed.
+
+---
+
+## Step 4 — Verify back-merge and clean up
+
+Verify the develop PR is merged:
+
+```bash
+gh pr view "$DEVELOP_PR_NUMBER" --json state --jq '.state'
+```
+
+Must return `MERGED`. If not, stop and ask the user to merge it first.
+
+Pull develop:
+
+```bash
+git checkout develop && git pull origin develop
+```
+
+Delete the local release branch if it still exists:
+
+```bash
+git branch --list "release/$VERSION"
+```
+
+If it returns output:
+
+```bash
+git branch -D "release/$VERSION"
+```
+
+---
+
 ## Done
 
 Show the user a final summary:
@@ -156,12 +175,10 @@ Show the user a final summary:
 ```
 Release $VERSION complete:
   - master: updated and tagged $VERSION
-  - develop: back-merged (via develop PR merge)
+  - develop: back-merged from master (via PR #$DEVELOP_PR_NUMBER)
   - Local release branch: deleted
   - Tag $VERSION: pushed to origin
 ```
-
-> **Note**: The back-merge to develop was completed when you merged the develop PR on GitHub. No additional merge step is needed.
 
 ---
 
@@ -169,6 +186,7 @@ Release $VERSION complete:
 
 > **Tip**: If you encounter git flow setup issues, run the **gitflow-prerequisites** skill to verify your environment.
 
+- **Master PR merged but back-merge PR has conflicts**: resolve them in the GitHub conflict editor or check out develop locally, merge master, resolve, and push. Do not skip the back-merge — it keeps the branches in sync for future releases.
 - **After both PRs merge**: the release is complete. If you need to undo it, a revert commit on master is the safest path. Team coordination is required.
 - **Tag push fails**: check that you have push access and the tag doesn't already exist on the remote (`git ls-remote --tags origin <version>`).
 - **Tag pushed incorrectly**: to delete a pushed tag, run `git push origin --delete <version>` and recreate it on the correct commit.
