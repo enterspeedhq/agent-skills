@@ -55,6 +55,15 @@ Use this base structure and fill in slides:
       margin: 2px;
       vertical-align: middle;
     }
+    .flow {
+      font-family: monospace;
+      font-size: 0.7em;
+      background: rgba(0,0,0,0.35);
+      border-radius: 8px;
+      padding: 14px 18px;
+      line-height: 1.7;
+      white-space: pre;
+    }
   </style>
 </head>
 <body>
@@ -71,6 +80,9 @@ Use this base structure and fill in slides:
 <script>
   Reveal.initialize({
     hash: true,
+    width: 1600,
+    height: 900,
+    margin: 0.04,
     transition: 'slide',
     backgroundTransition: 'fade',
     plugins: [ RevealNotes, RevealHighlight ]
@@ -79,6 +91,8 @@ Use this base structure and fill in slides:
 </body>
 </html>
 ```
+
+> **Why `width: 1600, height: 900`?** Reveal.js defaults to 960px wide. On typical laptop viewports (~1500px+) this causes content to scale *up* (~1.6×), making everything too large. Setting 1600×900 forces a scale-down instead, so text and layout stay proportional without needing to zoom out.
 
 ---
 
@@ -113,6 +127,15 @@ Use this base structure and fill in slides:
   </aside>
 </section>
 ```
+
+### Monospace flow / ASCII diagram
+Use the `.flow` CSS class for step-by-step flows, data pipelines, or ASCII diagrams:
+```html
+<div class="flow">Step 1 → Step 2
+  → detail
+Step 3 → outcome</div>
+```
+Keep `.flow` blocks concise. If a flow has more than ~10 lines, reduce `font-size` inline: `style="font-size:0.58em; line-height:1.6;"`. Blank lines between steps add height fast — omit them if the slide is dense.
 
 ### Summary / what's next slide
 ```html
@@ -154,10 +177,23 @@ Default to `moon` for technical/dev content.
 
 ---
 
+## Layout — preventing overflow
+
+Reveal.js scales slide content to fit the viewport. Dense slides can overflow if the unscaled content is taller than 900px. Apply these fixes in order:
+
+1. **Reduce `.flow` block font size** — start at `font-size:0.65em`, go to `0.58em` if needed. Also set `line-height:1.6` and remove blank lines between steps.
+2. **Reduce `p` and `ul` font sizes** — `0.75em` for supporting text, `0.65em` for secondary detail.
+3. **Tighten margins** — reduce `margin-bottom` on headings and paragraphs (`0.4em`–`0.6em`).
+4. **Split the slide** — if content still overflows after font reduction, split into two slides. Two clear slides beat one cramped one.
+
+Never shrink below `0.55em` — text becomes unreadable in presentation conditions.
+
+---
+
 ## Delivery
 
-1. Write the full HTML directly to `/mnt/user-data/outputs/presentation.html`
-2. Use `present_files` to share it with the user
+1. Write the full HTML directly to the output path specified by the user (or `/mnt/user-data/outputs/presentation.html` if unspecified)
+2. **Verify layout**: open the file in a browser (or use the preview tool if available) and screenshot each content-heavy slide at 100% zoom. Fix any overflow before handing off — apply the layout fixes above.
 3. Tell the user: open in browser, use arrow keys to navigate, `S` for speaker notes
 
 Note: CDN links are pinned to Reveal.js 4.6.1 intentionally for stability.
