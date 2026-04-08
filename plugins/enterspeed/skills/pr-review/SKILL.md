@@ -44,6 +44,7 @@ gh pr view <number> --json body,comments
 If no match anywhere, skip all story steps silently. Do not mention it.
 
 If a story ID is found, call `stories-get-by-id` with the numeric part of the ID:
+
 - If the Shortcut MCP tool is unavailable or returns an error for any reason: skip silently, proceed as today
 - If the story is found: store the title, description, and acceptance criteria for use in Step 7
 
@@ -95,20 +96,40 @@ Do not block, flag, or repeat this. One line, move on.
 
 ---
 
-## Step 6: Read the diff
+## Step 6: Analyze changes strategically
 
-After checkout, use git to diff against the base branch:
+First, get the overview of what changed:
+
+```bash
+git diff --name-status origin/<base-branch>...HEAD
+git diff --stat origin/<base-branch>...HEAD
+```
+
+The status shows which files were added (A), modified (M), or deleted (D). The stat shows line counts per file.
+
+**For small PRs** (≤5 files AND ≤200 total line changes):
+
+Read the full diff — it's efficient and gives complete context:
 
 ```bash
 git diff origin/<base-branch>...HEAD
 ```
 
-This is cheaper than `gh pr diff` and benefits from the local checkout. For large diffs (~500+ lines, excluding generated files), focus on:
-1. New files added
-2. Core logic changes — function signatures, control flow, data model modifications (skip test fixtures, lock files, generated code, and pure formatting changes)
-3. Test changes
+**For larger PRs**, use targeted reading to minimize token cost:
 
-If doing a focused review due to diff size, say so explicitly in the summary: "This is a large diff — review focused on core logic and new files; formatting and generated files were skipped."
+1. **New files (status `A`)**: Read the entire file with `read_file` — you need full context
+2. **Modified files (status `M`)**:
+   - If changes are small (<50 lines per file), read the file-specific diff:
+     ```bash
+     git diff origin/<base-branch>...HEAD -- path/to/file
+     ```
+   - If changes are large (50+ lines), read the full file with `read_file` to understand the broader context
+3. **Deleted files (status `D`)**: Note the removal; no content needed
+4. **Focus on core changes**: Skip generated files (package-lock.json, .min.js, etc.), pure formatting commits, and test fixtures unless they're central to the PR
+
+This approach balances completeness with efficiency. For a 10-file PR with 800 lines changed, targeted reading can reduce token cost by 40-60% compared to reading the full diff.
+
+If doing a focused review due to PR size, say so explicitly in the summary: "Large PR — review focused on [specific areas]; [what was skipped] were not examined in detail."
 
 ---
 
@@ -123,7 +144,7 @@ Present the review in this structure:
 ### PR #N — [Title]
 
 **Author:** [name] | **Branch:** `[head]` → `[base]` | **Size:** +[additions] / -[deletions] across [N] files
-*(If a story was fetched: `Story: sc-XXXX — [title]`)*
+_(If a story was fetched: `Story: sc-XXXX — [title]`)_
 
 ---
 
@@ -149,7 +170,7 @@ Consider these categories in rough priority order, but focus on what matters mos
 6. **Breaking changes** — API contract changes, schema migrations, removed or renamed fields.
 7. **Performance** — N+1 queries, missing indexes, large allocations in hot paths.
 8. **Naming** — Are names clear and accurate? Do they communicate intent without being excessively long?
-9. **Comments** — Do code comments explain *why*, not *what*? Is anything unclear enough to warrant a comment?
+9. **Comments** — Do code comments explain _why_, not _what_? Is anything unclear enough to warrant a comment?
 10. **Documentation** — Does any README, guide, or reference doc need updating?
 11. **Style / best practices** — Anything that contradicts the repo's own CONTRIBUTING / style docs.
 
@@ -160,6 +181,7 @@ Only include categories where something stands out. Skip the rest.
 #### Checklist alignment
 
 If a PR template (`.github/PULL_REQUEST_TEMPLATE.md`) exists in the repo, check whether the PR description appears to have addressed each checklist item:
+
 - **Unanswered / skipped** — flag as `question (non-blocking):` and ask the author to confirm intentionality
 - **Clearly violated** (e.g. checklist says "tests required" and there are none) — flag as `issue (blocking):`
 
@@ -179,18 +201,19 @@ Use **Conventional Comments** labels to make intent unambiguous:
 [optional discussion]
 ```
 
-| Label | When to use |
-|-------|-------------|
-| `issue` | Something that must be addressed — correctness, security, breaking change |
-| `suggestion` | A concrete improvement proposal — take it or leave it |
-| `question` | Genuinely unsure; seeking clarification before forming a view |
-| `nitpick` | Trivial preference — style, naming, minor polish |
-| `praise` | Call out something done particularly well |
-| `thought` | An idea worth considering, no action required |
-| `note` | Informational observation, no action required |
-| `todo` | A small but necessary change before merge |
+| Label        | When to use                                                               |
+| ------------ | ------------------------------------------------------------------------- |
+| `issue`      | Something that must be addressed — correctness, security, breaking change |
+| `suggestion` | A concrete improvement proposal — take it or leave it                     |
+| `question`   | Genuinely unsure; seeking clarification before forming a view             |
+| `nitpick`    | Trivial preference — style, naming, minor polish                          |
+| `praise`     | Call out something done particularly well                                 |
+| `thought`    | An idea worth considering, no action required                             |
+| `note`       | Informational observation, no action required                             |
+| `todo`       | A small but necessary change before merge                                 |
 
 Decorations to add in parentheses after the label:
+
 - `(blocking)` — must be resolved before approval
 - `(non-blocking)` — can merge, but worth following up
 - `(if-minor)` — only act on this if the fix is trivial
@@ -202,7 +225,7 @@ Example: `suggestion (non-blocking): Extract this into a helper function — the
 ## Tone (Google Engineering Practices)
 
 - Focus on the code, not the person. "This function is hard to follow" not "you wrote this confusingly."
-- Always explain the *why* — developers should understand the reasoning, not just the verdict.
+- Always explain the _why_ — developers should understand the reasoning, not just the verdict.
 - Approve when the change improves overall code health, even if it isn't perfect. Don't block on style preferences.
 - Use `nitpick:` or `suggestion (non-blocking):` for things that aren't worth blocking on.
 - Recognize good work — call out clean design, smart test coverage, or a well-named abstraction.
