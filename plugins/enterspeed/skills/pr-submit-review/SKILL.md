@@ -46,13 +46,64 @@ If the conversation already contains a PR review (from the `pr-review` skill or 
 
 Do not block on style preferences that aren't covered by the team's style guide. If something is worth noting but not blocking, use `--comment` instead.
 
+### Emoji conventions
+
+Use these prefixes to make the review scannable at a glance:
+
+| Label | Emoji |
+|-------|-------|
+| `issue (blocking):` | 🚫 |
+| `issue (non-blocking):` | ⚠️ |
+| `suggestion:` | 💡 |
+| `nitpick:` | 🔍 |
+| `question:` | ❓ |
+| `praise:` | ✨ |
+| `thought:` | 💭 |
+
+### Review structure
+
+Always order the body as follows, regardless of action type:
+
+1. **Blockers / issues** — what must change (skip section if none)
+2. **Suggestions / nitpicks** — non-blocking improvements (skip section if none)
+3. **Positives** — what worked well (always include, always substantive)
+
+The positives section is the last thing the author reads — expand on it. Name specific decisions, call out good patterns, or note what made the PR easy to review. One genuine sentence beats three vague ones.
+
+### Markdown formatting
+
+Use H3 headers (`###`) for each section that appears in the body:
+
+```markdown
+### 🚫 Blockers
+### 💡 Suggestions
+### ✨ What worked well
+```
+
+Within a section, keep items flat by default. Add an H4 subheading (`####`) only when **2 or more items share the same theme** (e.g. same file area, same concern like "error handling" or "flow logic"). A single item never gets its own subheading.
+
+Example of a grouped section:
+
+```markdown
+### 🚫 Blockers
+
+#### Flow handling
+- 🚫 `issue (blocking):` The early-return on line 42 skips the cleanup call — this will leak state on error paths.
+- 🚫 `issue (blocking):` The loop on line 67 doesn't account for an empty list and will throw.
+
+#### Auth
+- 🚫 `issue (blocking):` Token is logged in plain text on line 88.
+```
+
+Omit a section header entirely if that section has no content (except Positives, which is always present).
+
 ### Body guidelines by action
 
-**Approve** — Keep it short: 1–3 sentences. State what looks good and call out any non-blocking suggestions inline.
+**Approve** — 1–3 sentences. Lead with any non-blocking suggestions, then close with what specifically made this approvable.
 
-**Request changes** — Be concise and actionable: 3–5 bullet points maximum. List only what *must* be fixed before merge. Do not repeat the full review — just the blockers. Prefix each item with a Conventional Comments label where helpful (e.g. `issue (blocking):`). If the user's draft exceeds 5 bullets, flag it and ask which items are truly blocking before submitting.
+**Request changes** — 3–5 bullets maximum, covering only what *must* be fixed before merge. Prefix each with the relevant emoji label. If the user's draft exceeds 5 blockers, flag it and ask which items are truly blocking before submitting. Always end with a positives section.
 
-**Comment** — Use when the verdict isn't clear yet, the review is informational, or you want to leave notes without blocking or approving. Freeform; match length to the content.
+**Comment** — Use when the verdict isn't clear yet, or you want to leave notes without blocking or approving. Freeform; match length to the content. Still end with positives if there are any.
 
 ### Formatting
 
@@ -62,9 +113,13 @@ When submitting via `gh`, pass the body as a multiline heredoc so newlines are p
 
 ```bash
 gh pr review <number> --approve --body "$(cat <<'EOF'
-Looks good overall. Clean implementation and well-tested.
+### 💡 Suggestions
 
-suggestion (non-blocking): The helper in utils.ts could be extracted to a shared module — it's duplicated in two places already.
+- 💡 `suggestion:` The helper in `utils.ts` could be extracted to a shared module — it's duplicated in two places already.
+
+### ✨ What worked well
+
+Clean separation of concerns in the new service layer, and the test coverage on the edge cases is solid. Easy to follow.
 EOF
 )"
 ```
