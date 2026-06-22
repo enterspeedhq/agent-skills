@@ -1,7 +1,7 @@
 ---
 name: enterspeed-user-stories
 version: 1.0.0
-description: Generate well-structured user stories for Enterspeed using the standard team template. Use when someone describes a feature, capability, or user role + goal and needs a formatted user story. Works from rough ideas or specific role+goal inputs. Do not use for bug fixes, technical debt, or retrospective analysis.
+description: Generate well-structured user stories for Enterspeed using the standard team template. Use when someone describes a feature, capability, or user role + goal — and also for chore, technical-debt, or migration tasks, which use the same template. Works from rough ideas or a specific role + goal. Do not use for bug fixes or retrospective analysis.
 ---
 
 # Enterspeed User Story Generator
@@ -15,6 +15,8 @@ The user will provide one of:
 - A **specific user role + goal** (e.g. "As a developer, I want to query products by SKU")
 
 Both are valid starting points. Work with whatever is given.
+
+**Chores, technical-debt, and migration tasks use the same template** — don't fall back to a freehand format. Infer a sensible role (often **DevOps engineer** or **Engineer**), frame the goal as the change being made and the benefit as the problem it removes, and keep the acceptance + success criteria sections. Only true bug fixes and retrospective analysis are out of scope.
 
 ## Your Job
 
