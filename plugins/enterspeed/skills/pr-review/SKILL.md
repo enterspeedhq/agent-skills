@@ -7,7 +7,7 @@ description: Review a pull request in the current git repository. Use this skill
 
 Checks out a pull request, reads the diff and any repo best-practice docs, then delivers a structured review summary and focused attention points.
 
-> **Important:** All work happens in a dedicated tmp worktree created specifically for this review (e.g. `/tmp/pr-review-<number>`). Never use the primary working directory or an existing worktree — this review must not interfere with other in-progress work.
+> **Important:** All checkout and file-level work happens in a dedicated tmp worktree created specifically for this review (e.g. `/tmp/pr-review-<repo>-<number>`). Steps 2 and 3 run in the current working directory as normal. Never use the primary working directory for checkout — this review must not interfere with other in-progress work.
 
 ---
 
@@ -72,23 +72,34 @@ Note which sections are relevant to the changes in this PR. You will use them to
 
 ## Step 4: Create a dedicated worktree for the PR
 
-From the **primary working directory**, create a fresh worktree and check out the PR branch into it:
+Derive the repo name from `git remote get-url origin` (take the last path segment, strip `.git`). Use `/tmp/pr-review-<repo>-<number>` as the worktree path throughout — this avoids collisions when reviewing the same PR number in different repositories.
+
+Remove any stale worktree at that path first:
 
 ```bash
-gh pr checkout <number> --worktree /tmp/pr-review-<number>
+git worktree remove --force /tmp/pr-review-<repo>-<number> 2>/dev/null || true
 ```
 
-If `--worktree` is not supported by the installed `gh` version, fall back to:
+Then fetch the PR's HEAD and create a detached worktree — this never creates a local branch, so it can't conflict with branches checked out in the primary clone or other worktrees:
 
 ```bash
-git worktree add /tmp/pr-review-<number>
-cd /tmp/pr-review-<number>
-gh pr checkout <number>
+git fetch origin pull/<number>/head
+git worktree add --detach /tmp/pr-review-<repo>-<number> FETCH_HEAD
 ```
 
-Run all subsequent commands (diff, file reads, pre-flight check) from `/tmp/pr-review-<number>`. This isolates the review from the primary checkout and any other in-progress worktrees.
+**Fallback** — if the `pull/<number>/head` ref is unavailable (e.g. a non-GitHub remote):
 
-If checkout fails, proceed with diff-only review and note this to the user.
+```bash
+git worktree add --detach /tmp/pr-review-<repo>-<number>
+cd /tmp/pr-review-<repo>-<number>
+gh pr checkout <number> --detach
+```
+
+> Note: these commands use bash syntax. Run via bash/zsh — not PowerShell.
+
+Run all subsequent commands (diff, file reads, pre-flight check) from `/tmp/pr-review-<repo>-<number>`.
+
+If the worktree cannot be created, proceed with diff-only review and note this to the user.
 
 ---
 
@@ -145,7 +156,19 @@ If doing a focused review due to PR size, say so explicitly in the summary: "Lar
 
 ---
 
-## Step 7: Deliver the review
+## Step 7: Clean up the worktree
+
+After completing the diff analysis and before delivering the review, remove the worktree:
+
+```bash
+git worktree remove --force /tmp/pr-review-<repo>-<number>
+```
+
+If removal fails, note it briefly to the user but do not block delivering the review.
+
+---
+
+## Step 8: Deliver the review
 
 Use **Conventional Comments** labels throughout to make intent unambiguous (full reference in the Comment format section below). Each observation should be prefixed with the appropriate label, e.g. `issue (blocking):`, `suggestion (non-blocking):`, `nitpick:`.
 
