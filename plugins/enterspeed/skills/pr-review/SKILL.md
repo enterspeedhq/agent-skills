@@ -7,6 +7,8 @@ description: Review a pull request in the current git repository. Use this skill
 
 Checks out a pull request, reads the diff and any repo best-practice docs, then delivers a structured review summary and focused attention points.
 
+> **Important:** All work happens in a dedicated tmp worktree created specifically for this review (e.g. `/tmp/pr-review-<number>`). Never use the primary working directory or an existing worktree — this review must not interfere with other in-progress work.
+
 ---
 
 ## Step 1: Resolve the PR number
@@ -68,15 +70,25 @@ Note which sections are relevant to the changes in this PR. You will use them to
 
 ---
 
-## Step 4: Check out the PR branch
+## Step 4: Create a dedicated worktree for the PR
+
+From the **primary working directory**, create a fresh worktree and check out the PR branch into it:
 
 ```bash
+gh pr checkout <number> --worktree /tmp/pr-review-<number>
+```
+
+If `--worktree` is not supported by the installed `gh` version, fall back to:
+
+```bash
+git worktree add /tmp/pr-review-<number>
+cd /tmp/pr-review-<number>
 gh pr checkout <number>
 ```
 
-Check out the branch to get full file context. This enables relative path resolution for subsequent git commands, lets you navigate code beyond the diff (callers, related modules, tests), and makes the branch available in the IDE if the user wants to explore interactively.
+Run all subsequent commands (diff, file reads, pre-flight check) from `/tmp/pr-review-<number>`. This isolates the review from the primary checkout and any other in-progress worktrees.
 
-Skip only if the user explicitly says they just want a quick diff-based summary. If checkout fails (local branch conflict, network issue), proceed with diff-only review and note this to the user.
+If checkout fails, proceed with diff-only review and note this to the user.
 
 ---
 
