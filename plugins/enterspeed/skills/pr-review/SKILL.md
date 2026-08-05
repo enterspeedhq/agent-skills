@@ -7,6 +7,8 @@ description: Review a pull request in the current git repository. Use this skill
 
 Checks out a pull request, reads the diff and any repo best-practice docs, then delivers a structured review summary and focused attention points.
 
+> **Important:** All checkout and file-level work happens in a dedicated tmp worktree created specifically for this review (e.g. `/tmp/pr-review-<repo>-<number>`). Steps 2 and 3 run in the current working directory as normal. Never use the primary working directory for checkout — this review must not interfere with other in-progress work.
+
 ---
 
 ## Step 1: Resolve the PR number
@@ -46,7 +48,7 @@ If no match anywhere, skip all story steps silently. Do not mention it.
 If a story ID is found, call `stories-get-by-id` with the numeric part of the ID:
 
 - If the Shortcut MCP tool is unavailable or returns an error for any reason: skip silently, proceed as today
-- If the story is found: store the title, description, and acceptance criteria for use in Step 7
+- If the story is found: store the title, description, and acceptance criteria for use in Step 8
 
 ---
 
@@ -68,21 +70,42 @@ Note which sections are relevant to the changes in this PR. You will use them to
 
 ---
 
-## Step 4: Check out the PR branch
+## Step 4: Create a dedicated worktree for the PR
+
+Derive the repo name from `git remote get-url origin` (take the last path segment, strip `.git`). Use `/tmp/pr-review-<repo>-<number>` as the worktree path throughout — this avoids collisions when reviewing the same PR number in different repositories.
+
+Remove any stale worktree at that path first:
 
 ```bash
-gh pr checkout <number>
+git worktree remove --force /tmp/pr-review-<repo>-<number> 2>/dev/null || true
 ```
 
-Check out the branch to get full file context. This enables relative path resolution for subsequent git commands, lets you navigate code beyond the diff (callers, related modules, tests), and makes the branch available in the IDE if the user wants to explore interactively.
+Then fetch the PR's HEAD and create a detached worktree — this never creates a local branch, so it can't conflict with branches checked out in the primary clone or other worktrees:
 
-Skip only if the user explicitly says they just want a quick diff-based summary. If checkout fails (local branch conflict, network issue), proceed with diff-only review and note this to the user.
+```bash
+git fetch origin <base-branch> pull/<number>/head
+git worktree add --detach /tmp/pr-review-<repo>-<number> FETCH_HEAD
+```
+
+**Fallback** — if the `pull/<number>/head` ref is unavailable (e.g. a non-GitHub remote):
+
+```bash
+git worktree add --detach /tmp/pr-review-<repo>-<number>
+cd /tmp/pr-review-<repo>-<number>
+gh pr checkout <number> --detach
+```
+
+> Note: these commands use bash syntax. Run via bash/zsh — not PowerShell.
+
+Run all subsequent commands (diff, file reads, pre-flight check) from `/tmp/pr-review-<repo>-<number>`.
+
+If the worktree cannot be created, proceed with diff-only review and note this to the user.
 
 ---
 
 ## Step 5: Check for pre-flight log
 
-With the branch checked out, look for a file matching `.pre-flight/<head-branch>*.md`:
+With the worktree created, look for a file matching `.pre-flight/<head-branch>*.md`:
 
 ```bash
 ls .pre-flight/<head-branch>* 2>/dev/null
@@ -190,6 +213,20 @@ If a PR template (`.github/PULL_REQUEST_TEMPLATE.md`) exists in the repo, check 
 #### Suggested questions for the author
 
 2–4 open questions to ask the PR author — things that are unclear from the diff alone or that could affect the review decision.
+
+---
+
+## Step 8: Clean up the worktree
+
+After delivering the review, remove the worktree:
+
+```bash
+git worktree remove --force /tmp/pr-review-<repo>-<number>
+```
+
+If removal fails, note it briefly to the user but do not block.
+
+---
 
 ## Comment format
 
