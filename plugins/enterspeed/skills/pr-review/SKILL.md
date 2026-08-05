@@ -48,7 +48,7 @@ If no match anywhere, skip all story steps silently. Do not mention it.
 If a story ID is found, call `stories-get-by-id` with the numeric part of the ID:
 
 - If the Shortcut MCP tool is unavailable or returns an error for any reason: skip silently, proceed as today
-- If the story is found: store the title, description, and acceptance criteria for use in Step 7
+- If the story is found: store the title, description, and acceptance criteria for use in Step 8
 
 ---
 
@@ -83,7 +83,7 @@ git worktree remove --force /tmp/pr-review-<repo>-<number> 2>/dev/null || true
 Then fetch the PR's HEAD and create a detached worktree — this never creates a local branch, so it can't conflict with branches checked out in the primary clone or other worktrees:
 
 ```bash
-git fetch origin pull/<number>/head
+git fetch origin <base-branch> pull/<number>/head
 git worktree add --detach /tmp/pr-review-<repo>-<number> FETCH_HEAD
 ```
 
@@ -105,7 +105,7 @@ If the worktree cannot be created, proceed with diff-only review and note this t
 
 ## Step 5: Check for pre-flight log
 
-With the branch checked out, look for a file matching `.pre-flight/<head-branch>*.md`:
+With the worktree created, look for a file matching `.pre-flight/<head-branch>*.md`:
 
 ```bash
 ls .pre-flight/<head-branch>* 2>/dev/null
@@ -156,19 +156,7 @@ If doing a focused review due to PR size, say so explicitly in the summary: "Lar
 
 ---
 
-## Step 7: Clean up the worktree
-
-After completing the diff analysis and before delivering the review, remove the worktree:
-
-```bash
-git worktree remove --force /tmp/pr-review-<repo>-<number>
-```
-
-If removal fails, note it briefly to the user but do not block delivering the review.
-
----
-
-## Step 8: Deliver the review
+## Step 7: Deliver the review
 
 Use **Conventional Comments** labels throughout to make intent unambiguous (full reference in the Comment format section below). Each observation should be prefixed with the appropriate label, e.g. `issue (blocking):`, `suggestion (non-blocking):`, `nitpick:`.
 
@@ -225,6 +213,20 @@ If a PR template (`.github/PULL_REQUEST_TEMPLATE.md`) exists in the repo, check 
 #### Suggested questions for the author
 
 2–4 open questions to ask the PR author — things that are unclear from the diff alone or that could affect the review decision.
+
+---
+
+## Step 8: Clean up the worktree
+
+After delivering the review, remove the worktree:
+
+```bash
+git worktree remove --force /tmp/pr-review-<repo>-<number>
+```
+
+If removal fails, note it briefly to the user but do not block.
+
+---
 
 ## Comment format
 
