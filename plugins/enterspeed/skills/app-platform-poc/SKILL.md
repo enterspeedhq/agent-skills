@@ -32,6 +32,8 @@ If the core file can't be read, **stop** — the skill is installed incorrectly 
 
 The input may arrive as a single sentence, a bullet list of requirements, a linked or pasted document, or a Shortcut story. Read any file, doc, or story that is referenced before asking anything — don't ask for information you can go and read.
 
+If something referenced **can't** be read — a private Shortcut story, a dead link, a path that isn't there — don't guess at its contents and don't stop. Say which one failed and why, ask the user to paste the relevant part, and if they'd rather push on, continue from what's in the prompt and record the gap as an explicit assumption in Step 3.
+
 From the input, work out the decisions in blueprint §3:
 
 1. **Tool name** — kebab and Pascal tokens (§2).

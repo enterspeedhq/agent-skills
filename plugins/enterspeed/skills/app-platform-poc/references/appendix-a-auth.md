@@ -29,6 +29,13 @@ verbatim, don't reinvent it per tool.** What legitimately varies:
   SSO / Entra ID / an external IdP is a different mechanism and **out of scope** here (the SPA-guard
   and `[Authorize]` patterns still apply if you swap it in later).
 
+> **Say so in the hand-over: the seeded login is a stepping stone, not the intended end state.** Note
+> in the README what promoting it would involve, because it isn't mainly a code change — it needs an
+> app registration, someone to own consent, and whatever the org's process for that is. What survives
+> a swap to a real IdP: the SPA guard, `[Authorize]` and the policies, and the cookie-reading
+> `JwtBearerEvents`. What goes: the seeded users, `create-user`, and this appendix's login endpoint.
+> Whoever picks the tool up should know that before they put it in front of real users.
+
 ### A.1 Extra backend packages
 
 Unpinned on purpose — the SDK resolves the newest version compatible with the TFM (see core §1,
@@ -278,7 +285,7 @@ public static class UserSeeder
     public static async Task SeedAsync(ApplicationDbContext db, ILogger logger, IReadOnlyList<AdminSeed> admins)
     {
         if (await db.Users.AnyAsync()) { logger.LogInformation("Users exist — skip seeding."); return; }
-        if (admins.Count == 0) { logger.LogWarning("No Seeding:Admin{n}* config — nobody can log in yet."); return; }
+        if (admins.Count == 0) { logger.LogWarning("No Seeding:Admin* config — nobody can log in yet."); return; }
         var i = 1;
         foreach (var a in admins)
         {

@@ -31,9 +31,9 @@ the source of truth for the stack, the layout, and the code.
 >
 > | File | Read it when | Size |
 > |---|---|---|
-> | `app-platform-blueprint.md` (this one) | always | ~750 lines |
-> | `appendix-b-database.md` | the tool persists data — **or** has auth | ~130 lines |
-> | `appendix-a-auth.md` | the tool needs a login and/or admin area | ~480 lines |
+> | `app-platform-blueprint.md` (this one) | always | ~970 lines |
+> | `appendix-b-database.md` | the tool persists data — **or** has auth | ~150 lines |
+> | `appendix-a-auth.md` | the tool needs a login and/or admin area | ~530 lines |
 >
 > Apply **B before A** (auth's `Users` table lives in B's database). Many internal tools need
 > neither; skip whatever doesn't apply rather than reading ahead.
@@ -208,12 +208,18 @@ platform from silently drifting apart.
   API's contract), serialize *that* payload with `JsonNamingPolicy.SnakeCaseLower` (or
   `[JsonPropertyName]`) and mirror snake_case in the TS interface. One casing per payload, and
   the two sides must agree.
+- **Log with message templates, not interpolation.** `logger.LogInformation("Parsed {Rows} rows for {Supplier}", rows, supplier)`, never `$"Parsed {rows} rows"`. Named properties are what make logs searchable the moment anything structured is put in front of them, and converting a codebase later is a full sweep. Costs nothing now.
 - **Type mapping:** `DateTimeOffset`→`string` (ISO), `int`/`decimal`→`number`, `bool`→`boolean`,
   arrays→`T[]`, nullable→`T | null` (or optional `?`). One request DTO + one response DTO per
   endpoint, mirrored 1:1.
 - **Ids are `string`** (a GUID as string, as in `Guid.NewGuid().ToString()`) unless the idea needs
   otherwise — so entity keys, DTO ids, and the TS mirror are all `string`, with no `number`/`string`
   mismatch across the wire.
+- **Correlation travels in a header, not the body.** Every response carries `X-Correlation-ID` (§6.3),
+  so a user-reported failure can be found in the logs. Deliberately *not* a body field: a body field
+  would have to be added by every hand-written `BadRequest(new { error = ... })` in every controller,
+  and the first one anybody forgets is the one they needed. The header is set by middleware and is
+  therefore always right, whoever wrote the body.
 - **Errors have a contract too.** Every non-2xx body is `{ "error": "<human-readable message>" }`.
   That's what the app's `errorMessage()` reads (§7.2), so it applies to *everything*: hand-written
   `BadRequest(new { error = ... })`, `[ApiController]`'s automatic model-validation 400s, and
@@ -344,6 +350,7 @@ public partial class Program { }        // so integration tests can host it
 ### 6.3 `ServiceCollectionExtensions.cs` — DI + middleware
 
 ```csharp
+using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AppTemplate.Platform.Infrastructure.ServiceConfiguration;
@@ -355,8 +362,20 @@ public static class ServiceCollectionExtensions
         // `??` is not enough: appsettings.json ships this key as "" (present but empty), and
         // WithOrigins("") matches no origin at all — every browser call would fail CORS.
         var origin = config["Cors:AllowedOrigin"];
-        if (string.IsNullOrWhiteSpace(origin)) origin = "http://localhost:5173";
-        services.AddCors(o => o.AddPolicy("AllowFrontend", p => p.WithOrigins(origin).AllowAnyMethod().AllowAnyHeader().AllowCredentials()));
+        if (string.IsNullOrWhiteSpace(origin))
+        {
+            // Fall back only in development. In production a missing origin is a misconfiguration:
+            // without this throw the API comes up healthy while serving a credentialed policy for
+            // localhost, which is both useless and wrong. §8 lists the var as required — mean it.
+            if (!env.IsDevelopment()) throw new InvalidOperationException("Cors:AllowedOrigin missing");
+            origin = "http://localhost:5173";
+        }
+        // WithExposedHeaders is what lets the SPA *read* the correlation id: cross-origin JavaScript
+        // cannot see a custom response header unless it is named here. Omit it and the header arrives
+        // while the browser silently hides it.
+        services.AddCors(o => o.AddPolicy("AllowFrontend", p => p
+            .WithOrigins(origin).AllowAnyMethod().AllowAnyHeader().AllowCredentials()
+            .WithExposedHeaders(CorrelationId.HeaderName)));
 
         // >>> register your tool's services + typed HttpClients here <<<
         // Database? add the registrations from Appendix B.   Auth? add the registrations from Appendix A.
@@ -385,11 +404,18 @@ public static class ServiceCollectionExtensions
 
     public static WebApplication UseApplicationMiddleware(this WebApplication app)
     {
+        // FIRST — everything after this, including the exception handler, needs the id to exist.
+        app.UseCorrelationId();
         // Unhandled exceptions → the same { error } shape. The middleware logs the exception itself,
         // so the detail lands in the logs without leaking a stack trace to the browser.
         app.UseExceptionHandler(b => b.Run(async ctx =>
         {
             ctx.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            // UseExceptionHandler clears the response before running this, wiping the header the
+            // correlation middleware set — so put it back, or 500s become the one case with no id.
+            // HttpContext.Items survives the clear, which is why the id is stashed there too.
+            var id = CorrelationId.For(ctx);
+            if (!string.IsNullOrWhiteSpace(id)) ctx.Response.Headers[CorrelationId.HeaderName] = id;
             await ctx.Response.WriteAsJsonAsync(new { error = "Unexpected server error" });
         }));
         if (app.Environment.IsDevelopment()) app.MapOpenApi();
@@ -399,14 +425,70 @@ public static class ServiceCollectionExtensions
         app.UseCors("AllowFrontend");
         // If using auth (Appendix A): app.UseAuthentication(); app.UseAuthorization();  (here, before MapControllers)
         app.MapHealthChecks("/health");
+        // "Is the deployed thing actually my change?" — one curl instead of a portal dig. Anonymous
+        // like /health, and it returns nothing but the version: no build paths, no machine names.
+        app.MapGet("/version", (IConfiguration config) =>
+        {
+            var version = config["APP_VERSION"];      // set by the deploy step to the image tag (§10)
+            if (string.IsNullOrWhiteSpace(version))
+                version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+            return Results.Ok(new { version = string.IsNullOrWhiteSpace(version) ? "unknown" : version });
+        }).AllowAnonymous();
         app.MapControllers();
         return app;
     }
 }
 ```
 
-> `BadRequestObjectResult` needs `using Microsoft.AspNetCore.Mvc;` (shown); `StatusCodes` and
-> `WriteAsJsonAsync` come from the Web SDK's implicit usings.
+> `BadRequestObjectResult` needs `using Microsoft.AspNetCore.Mvc;` and the version lookup needs
+> `using System.Reflection;` (both shown); `StatusCodes` and `WriteAsJsonAsync` come from the Web
+> SDK's implicit usings.
+
+**`Infrastructure/ServiceConfiguration/CorrelationId.cs`** — the id that ties a user's failed click to
+a log line. Copy as written; the ordering and the explicit log line are both load-bearing:
+
+```csharp
+namespace AppTemplate.Platform.Infrastructure.ServiceConfiguration;
+
+public static class CorrelationId
+{
+    public const string HeaderName = "X-Correlation-ID";
+
+    public static IApplicationBuilder UseCorrelationId(this IApplicationBuilder app) =>
+        app.Use(async (ctx, next) =>
+        {
+            var id = ctx.Request.Headers[HeaderName].FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(id))
+                id = Guid.NewGuid().ToString("n")[..12];      // short enough to read down a phone
+
+            ctx.Items[HeaderName] = id;                      // survives UseExceptionHandler's clear
+            ctx.Response.Headers[HeaderName] = id;
+
+            var logger = ctx.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Request");
+            // BeginScope is for structured sinks (App Insights, Seq) that record scope properties.
+            // Do NOT rely on it for the console — rendering scopes needs IncludeScopes, which is easy
+            // to configure in the wrong place and silent when you do. The explicit line below is what
+            // makes the id greppable in `docker compose logs`, and it doubles as an access log.
+            using (logger.BeginScope(new Dictionary<string, object> { ["CorrelationId"] = id }))
+            {
+                await next();
+                logger.LogInformation("{Method} {Path} -> {StatusCode} [{CorrelationId}]",
+                    ctx.Request.Method, ctx.Request.Path, ctx.Response.StatusCode, id);
+            }
+        });
+
+    public static string? For(HttpContext ctx) => ctx.Items[HeaderName] as string;
+}
+```
+
+> **Why an explicit log line rather than scopes alone.** Verified on a real run: with
+> `Logging:Console:IncludeScopes` *or* `Logging:Console:FormatterOptions:IncludeScopes` set, the
+> console emitted no scopes at all, so the id was nowhere in `docker compose logs` while looking
+> perfectly correct in code. Log it explicitly and the id is there regardless of formatter.
+>
+> **Error tracking later.** If a Sentry or App Insights hook is ever wanted, the exception handler
+> above is the single funnel every unhandled failure already passes through — one registration, not
+> an audit. Leave the seam; don't wire a key at scaffold time to infrastructure nobody has chosen.
 
 ### 6.4 `appsettings.json` + `appsettings.Development.json`
 
@@ -570,7 +652,15 @@ import axios from "axios";
 import type { AxiosRequestConfig } from "axios";
 import { API_BASE } from "@/lib/config";
 
+export const CORRELATION_HEADER = "X-Correlation-ID";
+
 export const http = axios.create({ baseURL: API_BASE, withCredentials: true });
+
+// One id per request so a user-reported failure can be found in the API logs.
+http.interceptors.request.use((cfg) => {
+  cfg.headers[CORRELATION_HEADER] = globalThis.crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+  return cfg;
+});
 
 export const apiGet = <T>(u: string, c?: AxiosRequestConfig) => http.get<T>(u, c);
 export const apiPost = <T>(u: string, d?: unknown, c?: AxiosRequestConfig) => http.post<T>(u, d, c);
@@ -585,11 +675,26 @@ export function errorMessage(e: unknown): string {
   }
   return e instanceof Error ? e.message : "Request failed";
 }
+
+/**
+ * A quotable reference for failures the user can't act on — server errors and network failures.
+ * Returns null for 4xx, where the message already says what to fix and an id is just noise.
+ */
+export function errorReference(e: unknown): string | null {
+  if (!axios.isAxiosError(e)) return null;
+  const status = e.response?.status;
+  if (status !== undefined && status < 500) return null;
+  return (e.response?.headers?.[CORRELATION_HEADER.toLowerCase()] as string | undefined) ?? null;
+}
 ```
 - **`App.tsx`** renders `<RouterProvider router={router} />`.
 - **`router.tsx`** maps `/` → a `Layout` with one child route per feature.
 - **`Layout.tsx`** is a top-nav shell with one `NavLink` per feature + an `<Outlet/>` (a single-feature tool can skip the nav).
-- **`components/ui.tsx`** holds small shared bits (Button/Card/etc.).
+- **`components/ui.tsx`** holds small shared bits (Button/Card/etc.). Give the error banner an
+  optional `reference` prop and render it as small monospace text when set — pages pass
+  `errorReference(e)`, so "something broke" always comes with something the user can quote and you
+  can grep. Optionally show `/version`'s value in the layout footer, so anyone can say which build
+  they're looking at without a curl.
 
 > If the tool needs a login/admin area, use the **auth shell in Appendix A** instead — it adds a
 > `UserProvider`, a `ProtectedRoute`, a `LoginPage`, an `authApi`, and a 401→logout interceptor
@@ -686,6 +791,7 @@ it alone. Include:
    | `ConnectionStrings__DefaultConnection` | platform | if DB | yes | Postgres conn string (Appendix B); prod uses `SSL Mode=VerifyFull` |
    | `Cors__AllowedOrigin` | platform | yes | no | the frontend URL |
    | `ASPNETCORE_ENVIRONMENT` | platform | yes | no | `Development` locally, `Production` deployed |
+   | `APP_VERSION` | platform | no | no | Image tag or commit SHA, surfaced by `GET /version`. Set by the deploy step; falls back to the assembly version, then `"unknown"` |
    | `VITE_API_BASE` | app (build) | no | no | API base URL; empty = same-origin |
 
    If the tool uses auth (Appendix A), also document `JwtSettings__Key` (secret),
@@ -746,11 +852,27 @@ is needed once these are set:
 | Env var | Value | Source |
 |---|---|---|
 | `ASPNETCORE_ENVIRONMENT` | `Production` | plain |
+| `APP_VERSION` | the image tag being deployed | plain (set by the deploy step, not IaC) |
 | `ConnectionStrings__DefaultConnection` *(if DB)* | Postgres conn string incl. `SSL Mode=VerifyFull` | secret |
 | `Cors__AllowedOrigin` | the frontend URL | plain |
 | *(if auth)* `JwtSettings__Key` | 64-char random string | secret |
 | *(if auth)* `JwtSettings__Issuer` / `__Audience` | `<tool>` / `<tool>-users` | plain |
 | *(if auth)* `Seeding__Admin1Username` / `__Admin1Password` (+ `Admin2`) | the login accounts | secret |
+
+**Decisions to state explicitly in the README** — these get made once, early, by whoever deploys, and
+are painful to revisit afterwards. Don't guess at them; write down that they need deciding, and record
+the answer once it exists:
+
+- **Environment separation.** One environment, or a dev/prod pair? It changes naming, what can be
+  shared, and whether the Static Web App and Container App come in pairs.
+- **Postgres network posture.** "Allow Azure services" or a private endpoint. Awkward to tighten once
+  things are connecting to it, so it shouldn't fall to whoever is in a hurry.
+- **Backup and retention.** The flexible server's retention window, and whether geo-redundancy is on.
+  Skippable for a throwaway; a decision if this is going to production — and the first person to want
+  a restore is the wrong person to be finding out.
+
+Naming conventions are deliberately *not* in scope here: the manifest names components, not instances,
+and the receiving team owns their own naming.
 
 **Deploy notes to record in the README:**
 - *(if auth)* **Same-site cookie:** the SWA (`*.azurestaticapps.net`) and the Container App
@@ -831,6 +953,8 @@ omit it. A local-only tool skips CD entirely (CI stays a recommended default).
 - [ ] .NET 10: `.slnx` solution — or `.sln`, whichever the SDK actually wrote (§6.1); `dotnet new webapi --use-controllers`; built-in OpenAPI (`AddOpenApi`/`MapOpenApi`).
 - [ ] Packages added **unpinned**, and every EF / Npgsql / `Microsoft.AspNetCore.*` package resolved to the SDK's major (§1, "Versions"). The `.csproj` and `package-lock.json` are the record — both committed.
 - [ ] No version number written in two places: Node's lives in `<tool>-app/.nvmrc` and CI reads it with `node-version-file`; the Node floor was checked against the toolchain's `engines`, not copied from this document.
+- [ ] `GET /version` responds anonymously and reports something real (`APP_VERSION` locally, the image tag once deployed); the deploy step is documented as setting it (§10).
+- [ ] Correlation: `X-Correlation-ID` on every response **including 500s**, named in `WithExposedHeaders` so the SPA can read it, logged explicitly on one line per request, and surfaced to the user by the error banner for 5xx and network failures. Verify the 500 case specifically — it's the one that breaks.
 - [ ] Frontend: axios `withCredentials`; TS `import type`; `paths` alias without `baseUrl`.
 - [ ] Local compose runs `ASPNETCORE_ENVIRONMENT=Development` (so any auth cookie isn't `Secure` and works over http).
 - [ ] A top-level `README.md` documents run steps + every env var (§8).
