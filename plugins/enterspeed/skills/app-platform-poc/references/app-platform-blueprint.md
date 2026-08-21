@@ -182,6 +182,13 @@ read at all. If the tool has both a database and auth, apply `appendix-b-databas
 `appendix-a-auth.md` *before* creating the first EF migration, so you get a single `InitialCreate`
 that already contains `Users` (see B.7) rather than `InitialCreate` + `AddUsers`.
 
+7. **Branching model.** State it rather than letting it fall out of a CI trigger: the default is
+   **trunk-based** — a single `main`, short-lived branches, CI on push and pull request — because git
+   flow is ceremony for a single-developer PoC. Say so in the plan and in the README, so a receiving
+   team on a different model inherits a stated decision instead of an accident. (Being settled
+   org-wide; if the standard lands as trunk plus release tags, this becomes the standard rather than
+   a default.)
+
 Then build in this order: platform baseline (§6.1–6.4) → Appendix B if persisting → Appendix A if
 auth → features (§6.5) → Docker (§6.7) → frontend (§7) → tests → README (§8) → terraform skeleton
 (§10) → CI. Verify with §6.6 and the §11 checklist.
@@ -457,8 +464,11 @@ public static class CorrelationId
     public static IApplicationBuilder UseCorrelationId(this IApplicationBuilder app) =>
         app.Use(async (ctx, next) =>
         {
+            // The inbound value is caller-controlled and ends up in a log line and a response header,
+            // so trust it only if it can't do damage: newlines would let a caller forge log entries,
+            // and an oversized value gets reflected into every response.
             var id = ctx.Request.Headers[HeaderName].FirstOrDefault();
-            if (string.IsNullOrWhiteSpace(id))
+            if (!IsUsable(id))
                 id = Guid.NewGuid().ToString("n")[..12];      // short enough to read down a phone
 
             ctx.Items[HeaderName] = id;                      // survives UseExceptionHandler's clear
@@ -478,6 +488,11 @@ public static class CorrelationId
         });
 
     public static string? For(HttpContext ctx) => ctx.Items[HeaderName] as string;
+
+    private static bool IsUsable(string? id) =>
+        !string.IsNullOrWhiteSpace(id)
+        && id.Length <= 64
+        && id.All(c => char.IsAsciiLetterOrDigit(c) || c == '-');
 }
 ```
 
@@ -512,8 +527,30 @@ Remember the `//` lines are notes to you — the committed JSON files contain no
 
 ### 6.5 Features (the idea)
 
-For each feature, add a controller under `Presentation/Controllers/`, any logic in
-`Application/<Feature>/`, and (if persisting) entities in `Domain/`. **Write the route out in
+For each feature, add a controller under `Presentation/Controllers/`, **a service in
+`Application/<Feature>/`**, and (if persisting) entities in `Domain/`.
+
+**The service is not optional, even when the feature looks too small for one.** "Add a service if
+there's logic" is the judgement call that gets made wrong most often, and moving data access out of
+controllers *after* hand-over touches every endpoint and every test at once. One extra file per
+feature at scaffold time buys a controller that only binds, calls and maps — and a service that unit
+tests can drive without spinning up the web host. The controller gets `ITodoService`, never
+`ApplicationDbContext`.
+
+A shape that keeps controllers thin without inventing machinery: the service returns a small record
+carrying either the result or the reason it failed, and the controller maps that onto status codes.
+
+```csharp
+public sealed record TodoOutcome(Todo? Todo, string? Error = null, bool NotFound = false);
+
+// in the controller:
+private ActionResult<TodoResponse> Respond(TodoOutcome outcome)
+{
+    if (outcome.NotFound) return NotFound(new { error = outcome.Error });
+    if (outcome.Error is not null) return BadRequest(new { error = outcome.Error });
+    return Ok(ToResponse(outcome.Todo!));
+}
+``` **Write the route out in
 lowercase — `[Route("api/todos")]`, not `[Route("api/[controller]")]`.** The token form renders the
 class name's casing into the URL (`/api/Todos`), and since ASP.NET routing is case-insensitive the
 mismatch stays invisible on the server while the app's URLs, interceptor string matches, and logs
@@ -524,8 +561,9 @@ match an external contract exactly, serialize with an explicit `JsonSerializerOp
 (snake_case via `JsonNamingPolicy.SnakeCaseLower`, or `[JsonPropertyName]`) and return
 `Content(json, "application/json")` rather than relying on the default serializer.
 
-> Inject `ApplicationDbContext` (Appendix B) if the feature persists data; protect endpoints with
-> `[Authorize]` / `[Authorize(Policy="AdminOnly")]` (Appendix A) if the tool has auth.
+> Inject `ApplicationDbContext` (Appendix B) into the **service** if the feature persists data — not
+> into the controller; protect endpoints with `[Authorize]` / `[Authorize(Policy="AdminOnly")]`
+> (Appendix A) if the tool has auth.
 
 > **File uploads — set the limit deliberately.** Kestrel caps a request body at ~30 MB by default,
 > so a larger upload fails with a bare 413 that says nothing useful. Decide the real ceiling per
@@ -638,6 +676,34 @@ template's `src/App.css` and `src/assets/` — the shell below doesn't use them.
 deprecates it, and current templates ship TS 6). With `verbatimModuleSyntax` on, import types with
 `import type`.
 
+**Lint — the template ships one, so use it.** `create-vite` emits `.oxlintrc.json` and a
+`"lint": "oxlint"` script; keep them rather than swapping in ESLint. Add
+`typescript/consistent-type-imports` as an `error`, which turns §11's `import type` convention into a
+failure instead of a habit, and keep the template's own `react/*` rules:
+
+```jsonc
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "typescript", "oxc", "import"],
+  "categories": { "correctness": "error" },
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/only-export-components": ["warn", { "allowConstantExport": true }],
+    "typescript/consistent-type-imports": "error"
+  }
+}
+```
+
+> `no-floating-promises` is worth wanting and **won't work as configured**: it needs type information,
+> so it requires the extra `oxlint-tsgolint` package and `oxlint --type-aware`. Verified — without
+> those, adding the rule silently does nothing, which is worse than not having it. Add the package if
+> you want the rule; otherwise leave it out rather than pretending.
+
+**`package.json`** — add `"engines": { "node": ">=22" }` (matching `.nvmrc`), and an `.npmrc`
+containing `engine-strict=true`. Without engine-strict a wrong local Node only warns. Note the SPA is
+never containerised — the Dockerfile covers the API only — so local Node is whatever is on `PATH`
+until something enforces it.
+
 ### 7.2 API client + app shell (no-auth baseline)
 
 **`src/lib/config.ts`**
@@ -656,9 +722,21 @@ export const CORRELATION_HEADER = "X-Correlation-ID";
 
 export const http = axios.create({ baseURL: API_BASE, withCredentials: true });
 
+/**
+ * crypto.randomUUID exists only in a secure context — it is undefined over plain http on anything
+ * that isn't localhost, which is exactly how a PoC gets demoed from a phone on the LAN. Calling it
+ * blind throws inside the interceptor and fails EVERY request, not just the id. The id has no
+ * security requirement; it only needs to be unique enough to grep for.
+ */
+function newCorrelationId(): string {
+  const uuid = globalThis.crypto?.randomUUID?.();
+  if (uuid) return uuid.replace(/-/g, "").slice(0, 12);
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+}
+
 // One id per request so a user-reported failure can be found in the API logs.
 http.interceptors.request.use((cfg) => {
-  cfg.headers[CORRELATION_HEADER] = globalThis.crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+  cfg.headers[CORRELATION_HEADER] = newCorrelationId();
   return cfg;
 });
 
@@ -684,7 +762,11 @@ export function errorReference(e: unknown): string | null {
   if (!axios.isAxiosError(e)) return null;
   const status = e.response?.status;
   if (status !== undefined && status < 500) return null;
-  return (e.response?.headers?.[CORRELATION_HEADER.toLowerCase()] as string | undefined) ?? null;
+  const fromResponse = e.response?.headers?.[CORRELATION_HEADER.toLowerCase()] as string | undefined;
+  // A network failure has no response at all — fall back to the id we sent, which is the case where
+  // the user has least to go on and most needs something to quote.
+  const fromRequest = e.config?.headers?.[CORRELATION_HEADER] as string | undefined;
+  return fromResponse ?? fromRequest ?? null;
 }
 ```
 - **`App.tsx`** renders `<RouterProvider router={router} />`.
@@ -797,8 +879,10 @@ it alone. Include:
    If the tool uses auth (Appendix A), also document `JwtSettings__Key` (secret),
    `JwtSettings__Issuer`/`__Audience`, and `Seeding__Admin1Username`/`__Admin1Password`
    (+ `Admin2`, secrets) — plus the seeded login credentials.
-5. **Tests** — `dotnet test`, `npm test`, `npm run build`.
-6. **Deploy** — point to `<tool>-platform/terraform/README.md` (§10).
+5. **Tests** — `dotnet test`, `npm test`, `npm run lint`, `npm run build`.
+6. **Branching** — one line naming the model the repo uses (trunk-based by default, §3) so the next
+   team doesn't have to infer it from the CI triggers.
+7. **Deploy** — point to `<tool>-platform/terraform/README.md` (§10).
 
 Keep it copy-pasteable. The `terraform/README.md` from §10 is a separate, infra-focused doc.
 
@@ -881,6 +965,9 @@ and the receiving team owns their own naming.
   build the frontend with `VITE_API_BASE=` empty) or use **same-parent custom domains**.
 - **Secrets** live in Key Vault — nothing secret in Terraform state or the repo.
 - **Image roll-out** (`az acr build` + `az containerapp update --image`) is a deploy step, not IaC.
+- **The Static Web App picks its own Node version** for the frontend build, which makes it a fourth
+  place the Node version effectively lives — and the one nobody looks at until a build that is green
+  in CI fails in SWA. Record the version there to match `<tool>-app/.nvmrc`.
 
 ### 10.2 `terraform/main.tf` (stub)
 
@@ -926,6 +1013,7 @@ jobs:
         # Reads <tool>-app/.nvmrc — the version lives in the repo, not in this file (§1, "Versions")
         with: { node-version-file: <tool>-app/.nvmrc, cache: npm, cache-dependency-path: <tool>-app/package-lock.json }
       - run: npm ci
+      - run: npm run lint
       - run: npm run build
       - run: npm test
 ```
@@ -960,7 +1048,8 @@ omit it. A local-only tool skips CD entirely (CI stays a recommended default).
 - [ ] A top-level `README.md` documents run steps + every env var (§8).
 - [ ] CI workflow builds + tests both projects on PRs (recommended default); CD is optional and completed by the infra owner. A local-only tool can skip both.
 - [ ] `<tool>/` is a git repo: `git init` and write `.gitignore` **before** the first `dotnet build` / `npm install`, so `bin/`, `obj/`, and `node_modules/` are never staged. Leave committing and pushing to the user — don't commit unasked.
-- [ ] `.gitignore`: `bin/ obj/ dist/ node_modules/ .terraform/ *.tfstate* **/terraform.tfvars **/.env`. Never commit sample data with personal info (names, IBANs, etc.).
+- [ ] `.gitignore` — start from `dotnet new gitignore` and append the frontend and terraform entries rather than hand-maintaining a list. It must cover `bin/ obj/ TestResults/ *.user .vs/ node_modules/ dist/ coverage/ .terraform/ *.tfstate* **/terraform.tfvars` and **all three env forms**: `**/.env`, `**/.env.local`, `**/.env.*.local`. `**/.env` alone does **not** match `.env.local`, which is Vite's documented place for local secrets and so the likeliest accidental commit in the whole layout — verify with `git check-ignore -q <tool>-app/.env.local`. Do **not** ignore `.terraform.lock.hcl`; that one is meant to be committed so provider versions are pinned for everyone. Never commit sample data with personal info (names, IBANs, etc.).
+- [ ] `npm run lint` passes and runs in CI (§7.1). A linter the generated repo ships but nobody runs is a linter that will be red the first time someone tries.
 - [ ] Verify before handing off: `dotnet build`, `dotnet test`, `npm run build`, `npm test`, and a local smoke test (login too, if auth).
 - [ ] Dependency check before handover: `dotnet list package --vulnerable --include-transitive` + `npm audit`; bump/pin anything flagged — **except** the one below.
 - [ ] `Microsoft.OpenApi` will be flagged (transitively, via the template's `Microsoft.AspNetCore.OpenApi`). **Defer it, and don't try to pin your way out:** an explicit `Microsoft.OpenApi` reference resolves to a 3.x that breaks the build outright — `error CS0200: Property or indexer 'IOpenApiMediaType.Example' cannot be assigned to` from ASP.NET's OpenAPI source generator. It has to wait for `Microsoft.AspNetCore.OpenApi` to take a patched 2.x. Deferring is safe because the doc is **dev-only**: `MapOpenApi` sits inside the `IsDevelopment()` guard, so it isn't exposed in production.

@@ -39,7 +39,7 @@ From the input, work out the decisions in blueprint §3:
 1. **Tool name** — kebab and Pascal tokens (§2).
 2. **Persistence** — does it store data? If it only transforms, validates, or proxies, there is no database.
 3. **Auth** — does it need a login and/or admin area? Auth requires the database.
-4. **Features** — each becomes one controller (+ service if there's logic) and one frontend page. Watch for the "upload → preview → ingest" shape.
+4. **Features** — each becomes one controller **and one service** (always, not only when there's obvious logic) plus one frontend page. Watch for the "upload → preview → ingest" shape.
 5. **Domain entities** — only if persisting.
 6. **External integrations** — each becomes a typed `HttpClient`.
 7. **Admin-managed config** — a settings entity + screen (needs database + auth).
@@ -58,6 +58,7 @@ Present a short plan before touching the filesystem:
 - **Target path** — the absolute path the two solutions will be created under.
 - **Database** — yes/no, and why. **Auth** — yes/no, and why.
 - **Features** — a table: feature → endpoints → frontend page.
+- **Branching** — the model the generated repo will use; trunk-based unless the user says otherwise (§3).
 - **Entities** — if persisting. **Integrations** — if any.
 - **Out of scope** — what you are deliberately not building.
 - **Assumptions** — one line each.
@@ -106,7 +107,7 @@ Then continue at Step 8 (verify).
 1. **Platform baseline** — scaffold, `Program.cs`, `ServiceCollectionExtensions.cs`, appsettings (blueprint §6.1–6.4). Delete the template's `WeatherForecast` files.
 2. **Database** — only if the tool persists data (or has auth). Read `references/appendix-b-database.md` now, then apply it.
 3. **Auth** — only if the tool needs a login/admin area, and only after Appendix B. Read `references/appendix-a-auth.md` now, then apply it. Create the EF migration once *all* entities exist, including `Users` — one `InitialCreate`, not a pair (B.7).
-4. **Features** — controllers, services, entities (§6.5). For every endpoint, write the C# DTO **and** its mirrored TypeScript interface in the same change set (§4). Controllers return DTOs, never EF entities.
+4. **Features** — controller, service, entities (§6.5). Every feature gets a service; the controller takes it, not `ApplicationDbContext`. For every endpoint, write the C# DTO **and** its mirrored TypeScript interface in the same change set (§4). Controllers return DTOs, never EF entities.
 5. **Dockerfile, `.dockerignore`, `docker-compose.yml`** (§6.7). The `.dockerignore` is required, not optional.
 6. **Frontend** — scaffold, config, api client, shell, then one page + one typed api module per feature (§7). Use the Appendix A auth shell instead of the plain shell if the tool has auth.
 7. **Tests** — both test projects, wired up during scaffolding, not after (Testing section). Unit-test the real logic — parsers, transforms, validators — and use golden-file tests where output must match an external contract.
@@ -131,6 +132,7 @@ Run, from the real project paths:
 ```bash
 dotnet build          # platform
 dotnet test           # platform
+npm run lint          # app — the template ships oxlint; a linter nobody runs goes red on its own
 npm run build         # app
 npm test              # app
 ```
