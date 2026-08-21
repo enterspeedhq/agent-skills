@@ -94,7 +94,9 @@ Bumps version to \`$VERSION\` in \`$PIPELINE_FILE\`.
 ### Checklist
 - [ ] Version variables updated correctly in \`$PIPELINE_FILE\`
 - [ ] CI passes on the release branch
-- [ ] Reviewed and approved"
+- [ ] Reviewed and approved
+- [ ] Merge using **Create a merge commit** only — do not squash or rebase (git flow needs a true
+      merge commit so master and develop keep shared history)"
 ```
 
 Capture the PR URL from the command output. Extract the PR number from the URL (the last path segment).
@@ -109,7 +111,28 @@ Show the user the PR URL, then say:
 
 > "Master PR is open: `$MASTER_PR_URL` (#`$MASTER_PR_NUMBER`)
 >
-> Once it's merged, run **gitflow-release-finish** with version `$VERSION` and master PR `#$MASTER_PR_NUMBER`. The back-merge to develop will be handled as part of the finish step."
+> This one is a real review gate — it's the change going to production, so it needs an approval.
+> Three ways to land it:
+>
+> **Option A — queue it now** (say "queue the release"):
+> I'll run `gh pr merge $MASTER_PR_NUMBER --auto --merge`, and GitHub merges it the moment its
+> requirements are met — approvals and checks both. Nothing to come back to.
+>
+> **Option B — merge here in chat once it's approved** (say "merge the PR"):
+> I'll run `gh pr merge $MASTER_PR_NUMBER --merge`.
+>
+> **Option C — merge on GitHub**: open the PR and click **'Create a merge commit'**.
+> ⚠️ Not squash or rebase — git flow needs a true merge commit so master and develop keep shared
+> history, and the back-merge in the next step depends on it.
+>
+> Once merged, run **gitflow-release-finish** with version `$VERSION` and master PR
+> `#$MASTER_PR_NUMBER`. The back-merge to develop is handled there."
+
+If the user picks Option A or B and the merge is refused for want of an approval, that's branch
+protection working as intended — not an error. Say the PR is open and correct and needs one approval,
+and that `--auto` (Option A) will then merge it unattended. **Don't suggest bypassing protection and
+don't retry in a loop.** Never pass `--delete-branch`: from inside a worktree it fails to switch
+branches and silently skips the deletion. **gitflow-release-finish** cleans the release branch up.
 
 ---
 
