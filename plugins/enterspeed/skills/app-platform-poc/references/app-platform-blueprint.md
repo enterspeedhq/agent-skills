@@ -31,7 +31,7 @@ the source of truth for the stack, the layout, and the code.
 >
 > | File | Read it when | Size |
 > |---|---|---|
-> | `app-platform-blueprint.md` (this one) | always | ~970 lines |
+> | `app-platform-blueprint.md` (this one) | always | ~1060 lines |
 > | `appendix-b-database.md` | the tool persists data — **or** has auth | ~150 lines |
 > | `appendix-a-auth.md` | the tool needs a login and/or admin area | ~530 lines |
 >
@@ -550,7 +550,9 @@ private ActionResult<TodoResponse> Respond(TodoOutcome outcome)
     if (outcome.Error is not null) return BadRequest(new { error = outcome.Error });
     return Ok(ToResponse(outcome.Todo!));
 }
-``` **Write the route out in
+```
+
+**Write the route out in
 lowercase — `[Route("api/todos")]`, not `[Route("api/[controller]")]`.** The token form renders the
 class name's casing into the URL (`/api/Todos`), and since ASP.NET routing is case-insensitive the
 mismatch stays invisible on the server while the app's URLs, interceptor string matches, and logs
