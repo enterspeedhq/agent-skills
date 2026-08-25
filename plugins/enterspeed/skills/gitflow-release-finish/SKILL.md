@@ -1,13 +1,15 @@
 ---
 name: gitflow-release-finish
-description: Finish a git flow release once the master PR is merged: verifies PR state, tags master, opens a back-merge PR from master to develop, and cleans up the release branch. Use when the user says "finish the release", "the master PR is merged", "after merging the PR", or "tag the release". Always run after gitflow-release-publish. This is the final step in the release workflow.
+description: Finish a git flow release once the master PR is merged: verifies PR state, tags master, opens a back-merge PR into develop, and cleans up the release branch. Use when the user says "finish the release", "the master PR is merged", "after merging the PR", or "tag the release". Always run after gitflow-release-publish. This is the final step in the release workflow.
 ---
 
 # Git Flow Release — Finish
 
-Completes the release after the master PR (opened by **gitflow-release-publish**) has been merged. Verifies the merge, tags master, opens a back-merge PR from master to develop, and cleans up the release branch.
+Completes the release after the master PR (opened by **gitflow-release-publish**) has been merged. Verifies the merge, tags master, opens a back-merge PR into develop, and cleans up the release branch.
 
-The back-merge PR uses **master → develop** (not release → develop). This is critical — it ensures develop receives master's exact merge commit, keeping both branches' histories synchronized. Opening a separate PR from the release branch to develop would create divergent commit SHAs, causing merge conflicts in future releases.
+The back-merge must give develop **master's exact merge commit** — that is what keeps the two branches' histories aligned. A PR opened from the *release* branch instead would put different commit SHAs on develop and conflict on every future release.
+
+So the back-merge branches off master and opens the PR from there. It is deliberately **not** opened with `--head master`: that shape works, but GitHub's post-merge **Delete branch** button deletes a PR's *head* branch — which would be master. A disposable `backmerge/<version>` branch carries the same commits and makes that button harmless.
 
 > **Stop on any error** — if any step fails unexpectedly, report the full error output to the user and do not proceed to the next step.
 
@@ -106,53 +108,142 @@ If this returns nothing, stop and tell the user:
 
 ---
 
-## Step 3 — Open back-merge PR (master → develop)
+## Step 3 — Open the back-merge PR (`backmerge/$VERSION` → develop)
 
-This step merges master into develop via a PR, so develop receives the exact merge commit from the master PR. This keeps both branches' histories aligned.
+Cut the back-merge branch from master and push it:
+
+```bash
+git fetch origin
+git checkout -b "backmerge/$VERSION" origin/master
+git push -u origin "backmerge/$VERSION"
+```
+
+If the branch already exists locally or on the remote, a previous run got this far. Don't force
+anything — tell the user it exists, and ask whether to reuse it (`git checkout "backmerge/$VERSION"`)
+or delete and recreate it. Wait for their answer.
+
+Open the PR:
 
 ```bash
 gh pr create \
   --base develop \
-  --head master \
+  --head "backmerge/$VERSION" \
   --title "Back-merge release $VERSION into develop" \
   --body "## Back-merge release $VERSION
 
-Merges master into develop after the \`$VERSION\` release. This keeps both branches in sync by giving develop the same merge commit that landed on master.
+Brings master's release merge commit into develop so both branches share history. No new work — every
+commit here was already reviewed on the master PR.
 
 ### Checklist
 - [ ] No conflicts with develop
-- [ ] CI passes"
+- [ ] CI passes
+- [ ] Merge using **Create a merge commit** only — do not squash or rebase (a squash would put a
+      different SHA on develop, which is the thing this PR exists to prevent)"
 ```
 
-Capture the PR URL from the command output. Extract the PR number from the URL (the last path segment).
+Capture the PR URL and number from the output.
 
-If this fails, stop and tell the user:
+If PR creation fails, stop and tell the user:
 
-> "Failed to create the back-merge PR. The release is tagged on master (`$VERSION`), but develop has not been updated yet. You can create the PR manually on GitHub (base: develop, head: master) or run: `gh pr create --base develop --head master --title 'Back-merge release $VERSION into develop'`"
-
-Tell the user:
-
-> "Back-merge PR is open: `$DEVELOP_PR_URL` (#`$DEVELOP_PR_NUMBER`). Please merge it to sync develop with master. Let me know once it's merged so I can finish the cleanup."
-
-Wait for the user to confirm the develop PR is merged before continuing. Do not proceed to Step 4 until confirmed.
+> "Failed to create the back-merge PR. The release is tagged on master (`$VERSION`) and the branch
+> `backmerge/$VERSION` is pushed, but develop has not been updated yet. You can open it manually
+> (base: `develop`, head: `backmerge/$VERSION`) or re-run:
+> `gh pr create --base develop --head backmerge/$VERSION --title 'Back-merge release $VERSION into develop'`"
 
 ---
 
-## Step 4 — Verify back-merge and clean up
+## Step 4 — Get the back-merge merged
 
-Verify the develop PR is merged:
+No commit here is new work — all of it was reviewed on the master PR — so don't
+park this on a human unless the repo or a failure forces it. Some repos do require an approval on
+develop regardless; step 4 below covers that. Work down this list:
+
+**1. Are there any checks?**
+
+```bash
+gh pr checks "$DEVELOP_PR_NUMBER"
+```
+
+If it reports no checks at all, merge straight away:
+
+```bash
+gh pr merge "$DEVELOP_PR_NUMBER" --merge
+```
+
+**2. If there are checks, queue the merge instead of waiting for them:**
+
+```bash
+gh pr merge "$DEVELOP_PR_NUMBER" --auto --merge
+```
+
+GitHub merges it as soon as the required checks pass, however long they take. Prefer this — it costs
+one command and can't time out.
+
+**3. If `--auto` is refused** (the repo doesn't have auto-merge enabled), watch the checks instead.
+Run this **in the background** — CI can outlast a foreground command's limit:
+
+```bash
+gh pr checks "$DEVELOP_PR_NUMBER" --watch --fail-fast
+```
+
+When it reports success, merge with `gh pr merge "$DEVELOP_PR_NUMBER" --merge`. If it reports a
+failure, **stop** — name the failing check and tell the user develop has not been updated yet. Don't
+retry and don't merge past a red check.
+
+**4. If a merge is refused for want of an approval**, that's branch protection on develop doing its
+job, not an error. Say so plainly: the PR is open and correct, and it needs one approval before it can
+merge. Name the two ways forward — someone approves it (`--auto` then merges it unattended, so nothing
+further is needed from you), or a repo admin merges it directly. **Don't suggest bypassing protection,
+and don't retry the merge in a loop.** If `--auto` was already queued, there is nothing else to run:
+tell the user the release completes on its own once the approval lands, and give them the Step 5
+verification command to run afterwards.
+
+Never pass `--delete-branch` to any of these. From inside a worktree it tries to switch that worktree
+onto another branch, fails, and silently skips deleting anything. Step 5 removes the branch explicitly.
+
+If the merge is refused because of conflicts, **stop**. Tell the user which files conflict and that
+they need resolving on `backmerge/$VERSION` before the PR can merge. Don't attempt to resolve them.
+
+---
+
+## Step 5 — Verify the back-merge and clean up
+
+Confirm the PR merged:
 
 ```bash
 gh pr view "$DEVELOP_PR_NUMBER" --json state --jq '.state'
 ```
 
-Must return `MERGED`. If not, stop and ask the user to merge it first.
+Must return `MERGED`.
 
-Pull develop:
+If it returns `OPEN` and the merge was queued with `--auto`, that is expected rather than a failure —
+it is waiting on checks, or on an approval. Don't wait for it and don't re-run the merge. Tell the
+user the release finishes on its own, hand them the verification commands below to run once it lands, and stop
+here. The tag is already on master, so nothing is half-done.
+
+If it returns `OPEN` with nothing queued, stop and ask the user to merge it first.
+
+Then verify what actually matters — that develop now contains master:
+
+```bash
+git fetch origin
+git merge-base --is-ancestor origin/master origin/develop && echo "develop contains master" || echo "develop does NOT contain master"
+```
+
+If develop does **not** contain master, stop and report it. The PR state says merged, so this means
+it was squashed or rebased rather than merged — develop has equivalent changes under different SHAs,
+and the next release will conflict. Tell the user plainly, and that fixing it means merging master
+into develop again with a real merge commit.
+
+Update the local branch and remove the branches that have served their purpose:
 
 ```bash
 git checkout develop && git pull origin develop
+git push origin --delete "backmerge/$VERSION"
+git branch -D "backmerge/$VERSION"
 ```
+
+If either delete fails because the branch is already gone, that's fine — say so and continue.
 
 Delete the local release branch if it still exists:
 
@@ -173,12 +264,16 @@ git branch -D "release/$VERSION"
 Show the user a final summary:
 
 ```
-Release $VERSION complete:
+Release $VERSION:
   - master: updated and tagged $VERSION
-  - develop: back-merged from master (via PR #$DEVELOP_PR_NUMBER)
-  - Local release branch: deleted
   - Tag $VERSION: pushed to origin
+  - develop: <back-merged via PR #N | back-merge PR #N queued, merges when its requirements are met>
+  - Branches: <release/$VERSION and backmerge/$VERSION deleted | cleaned up once the back-merge lands>
 ```
+
+Report only what actually happened. If the back-merge PR is still queued, say so on that line and
+say the release is not finished yet — the tag is on master, and develop follows once the PR merges.
+Don't print "complete" over a queued merge.
 
 ---
 
