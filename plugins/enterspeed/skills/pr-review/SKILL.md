@@ -188,7 +188,7 @@ Consider these categories in rough priority order, but focus on what matters mos
 1. **Design** — Does the overall approach make sense? Does this change belong here? Are component interactions sensible? Look for hardcoded constants that may need to vary by environment or behave differently between on-premise and multi-tenancy SaaS deployments.
 2. **Functionality** — Does the code do what it's supposed to? Check edge cases, concurrency issues, and user-facing behavior.
 3. **Complexity** — Is anything over-engineered or unnecessarily hard to follow? Watch for premature generalization or unused extensibility.
-4. **Tests** — Are there tests? Will they actually fail when the code breaks? Do they cover edge cases, not just the happy path?
+4. **Tests** — Are there tests? If a story was fetched and has acceptance criteria, read the test diff and check each AC: is there a test that would catch a regression against it? Flag any AC with no corresponding test coverage as `issue (blocking):` — an untested AC is an unverified delivery. Beyond AC coverage: read a sample of the test diff itself — tests should assert observable behaviour, not internal implementation state. Do they cover the edge cases the diff actually touches?
 5. **Security** — Input validation, auth checks, secrets, SQL injection, XSS, data exposure.
 6. **Breaking changes** — API contract changes, schema migrations, removed or renamed fields.
 7. **Performance** — N+1 queries, missing indexes, large allocations in hot paths.
