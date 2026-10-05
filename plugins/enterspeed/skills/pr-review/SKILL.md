@@ -65,6 +65,9 @@ Search the repo root (and `.github/`) for any of these files. Read any that exis
 - `docs/*-guidelines.md`
 - `.github/PULL_REQUEST_TEMPLATE.md`
 - `CLAUDE.md` (team AI conventions)
+- `.github/review-rules.md` (path-scoped review rules — see below)
+
+`.github/review-rules.md`, if present, is organised as one section per file glob (e.g. `` ## `src/**/*.cs` ``). Apply each section to the changed files its glob matches — these are rules the team has agreed on, so a clear violation is an `issue`, not a `suggestion`. If the PR itself changes this file, read the PR's version in Step 6.
 
 Note which sections are relevant to the changes in this PR. You will use them to calibrate your review. If none of these files exist, proceed without them — just review the diff against general engineering practices.
 
@@ -148,15 +151,32 @@ git diff origin/<base-branch>...HEAD
      ```
    - If changes are large (50+ lines), read the full file with `read_file` to understand the broader context
 3. **Deleted files (status `D`)**: Note the removal; no content needed
-4. **Focus on core changes**: Skip generated files (package-lock.json, .min.js, etc.), pure formatting commits, and test fixtures unless they're central to the PR
+4. **Generated and vendored files** (lock files, `.min.js`, build output, migration designer files) may be skipped — with that reason.
 
 This approach balances completeness with efficiency. For a 10-file PR with 800 lines changed, targeted reading can reduce token cost by 40-60% compared to reading the full diff.
 
-If doing a focused review due to PR size, say so explicitly in the summary: "Large PR — review focused on [specific areas]; [what was skipped] were not examined in detail."
+**Every changed file is accounted for.** Keep a checklist built from the `--name-status` output — not from what you remember reading — and mark each file `reviewed` or `skipped` with a concrete reason. Targeted reading changes *how* you read a file, never *whether* you read it: agents reviewing large PRs tend to quietly cover some files and drop others, and nobody can tell from the review which ones. If the PR is too large to read every file, say so in the summary and list the skipped files and why.
 
 ---
 
-## Step 7: Deliver the review
+## Step 7: Check each point against the code
+
+Before writing anything up, check every `issue`, `todo` and `suggestion` you intend to raise against the worktree. Reviews most often go wrong in two ways: the cited line isn't what the comment says it is, or the thing reported "missing" is there under a different name.
+
+1. **Quote the code.** For each point, copy the exact text it is about from the file in the worktree — one to five lines, verbatim, not paraphrased. Then confirm it is really there:
+   ```bash
+   grep -nF '<the most distinctive line of the quote>' path/to/file
+   ```
+   Pick a line that can only match once — not `}` or `return null;`. If `grep` still returns several matches, use the one whose surrounding lines match the rest of the quote. Take the line number from `grep`, not from memory. If the quote isn't found, re-read the file: either fix the quote or drop the point.
+2. **Point at changed code.** If the quoted line isn't part of this PR's diff, the point is about existing code — raise it as `note:` or `thought:`, not as an `issue` on this PR. The exception is evidence: an untested caller of a method this PR changes is a fair `issue`, anchored on the changed method.
+3. **"Missing" needs a search.** For anything reported as absent (no test, no migration, no null check), search for the actual symbol — the class, method or table name — not a guessed filename, and mention the search in the point. A filename pattern that finds nothing proves nothing.
+4. **Drop it, or ask it, if you can't show it.** If you can't point to the line that makes a point true, rephrase it as a `question` or leave it out.
+
+Points that survive go into the review with their `file:line`.
+
+---
+
+## Step 8: Deliver the review
 
 Use **Conventional Comments** labels throughout to make intent unambiguous (full reference in the Comment format section below). Each observation should be prefixed with the appropriate label, e.g. `issue (blocking):`, `suggestion (non-blocking):`, `nitpick:`.
 
@@ -167,6 +187,7 @@ Present the review in this structure:
 ### PR #N — [Title]
 
 **Author:** [name] | **Branch:** `[head]` → `[base]` | **Size:** +[additions] / -[deletions] across [N] files
+**Coverage:** [N]/[N] files reviewed _(list any skipped file with its reason)_
 _(If a story was fetched: `Story: sc-XXXX — [title]`)_
 
 ---
@@ -216,7 +237,7 @@ If a PR template (`.github/PULL_REQUEST_TEMPLATE.md`) exists in the repo, check 
 
 ---
 
-## Step 8: Clean up the worktree
+## Step 9: Clean up the worktree
 
 After delivering the review, remove the worktree:
 
