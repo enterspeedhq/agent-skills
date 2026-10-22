@@ -83,7 +83,8 @@ git worktree remove --force /tmp/pr-review-<repo>-<number> 2>/dev/null || true
 Then fetch the PR's HEAD and create a detached worktree — this never creates a local branch, so it can't conflict with branches checked out in the primary clone or other worktrees:
 
 ```bash
-git fetch origin <base-branch> pull/<number>/head
+# the PR head must come first: FETCH_HEAD resolves to the first ref fetched
+git fetch origin refs/pull/<number>/head refs/heads/<base-branch>:refs/remotes/origin/<base-branch>
 git worktree add --detach /tmp/pr-review-<repo>-<number> FETCH_HEAD
 ```
 
@@ -203,7 +204,7 @@ Only include categories where something stands out. Skip the rest.
 
 #### Checklist alignment
 
-If a PR template (`.github/PULL_REQUEST_TEMPLATE.md`) exists in the repo, check whether the PR description appears to have addressed each checklist item:
+If a PR template (`.github/PULL_REQUEST_TEMPLATE.md`) exists in the repo, check whether the PR description addresses each checklist item in substance — prose that covers the test plan or checklist counts even without the template's headings:
 
 - **Unanswered / skipped** — flag as `question (non-blocking):` and ask the author to confirm intentionality
 - **Clearly violated** (e.g. checklist says "tests required" and there are none) — flag as `issue (blocking):`
@@ -218,7 +219,7 @@ If a PR template (`.github/PULL_REQUEST_TEMPLATE.md`) exists in the repo, check 
 
 ## Step 8: Clean up the worktree
 
-After delivering the review, remove the worktree:
+Remove the worktree once the review is finished — after it is posted, or after the user decides not to post it. Posting waits for the user's approval, and the draft may need re-checking against the code until then:
 
 ```bash
 git worktree remove --force /tmp/pr-review-<repo>-<number>
