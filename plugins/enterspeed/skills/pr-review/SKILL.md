@@ -65,9 +65,6 @@ Search the repo root (and `.github/`) for any of these files. Read any that exis
 - `docs/*-guidelines.md`
 - `.github/PULL_REQUEST_TEMPLATE.md`
 - `CLAUDE.md` (team AI conventions)
-- `.github/review-rules.md` (path-scoped review rules — see below)
-
-`.github/review-rules.md`, if present, is organised as one section per file glob (e.g. `` ## `src/**/*.cs` ``). Apply each section to the changed files its glob matches — these are rules the team has agreed on, so a clear violation is an `issue`, not a `suggestion`. If the PR itself changes this file, read the PR's version in Step 6.
 
 Note which sections are relevant to the changes in this PR. You will use them to calibrate your review. If none of these files exist, proceed without them — just review the diff against general engineering practices.
 
