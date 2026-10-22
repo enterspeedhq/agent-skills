@@ -50,16 +50,23 @@ If a story ID is found, call `stories-get-by-id` with the numeric part of the ID
 - If the Shortcut MCP tool is unavailable or returns an error for any reason: skip silently, proceed as today
 - If the story is found: store the title, description, and acceptance criteria for use in Step 8
 
-**Earlier review rounds.** Read the reviews in full, not `reviewDecision`. That field is a summary that a `COMMENTED` review doesn't change, so it can read `APPROVED` while a later, substantive review sits unread:
+**Earlier review rounds.** Read the reviews in full, not `reviewDecision`. That field is a summary that a `COMMENTED` review doesn't change, so it can read `APPROVED` while a later, substantive review sits unread. Most of a round usually lives in the inline comments and the replies under them, which come from a separate endpoint; `gh pr view --json comments` returns neither. Both endpoints return 30 items per page, so paginate:
 
 ```bash
-gh api repos/{owner}/{repo}/pulls/<number>/reviews --jq '.[] | {user: .user.login, state, submitted_at, body}'
 gh api user --jq .login
+gh api --paginate repos/{owner}/{repo}/pulls/<number>/reviews --jq '.[] | {id, user: .user.login, state, submitted_at, commit_id, body}'
+gh api --paginate repos/{owner}/{repo}/pulls/<number>/comments --jq '.[] | {user: .user.login, path, line, in_reply_to_id, created_at, body}'
 ```
 
-If you have already reviewed this PR, this is round N+1. List what your last review raised, then check what the author has pushed or replied since (`gh pr view <number> --json comments,commits`). Steps 4–7 then cover only the changes since that review, checked against the open items. Don't re-raise points that were settled, and frame the output as "Round N". If you haven't reviewed it before, do the full review.
+If you have already reviewed this PR, this is round N+1. List what your last review raised, including its inline comments, then check what the author has pushed or replied since. Take the `commit_id` of your last review and find the changes since then:
 
-**CI state.** Run `gh pr checks <number>` and read every row. A check's name may not say everything it runs (a "Build" check can include lint), and one green check says nothing about the others. Mention any failing or pending check in the summary.
+```bash
+git merge-base --is-ancestor <commit_id> HEAD && git diff <commit_id>..HEAD
+```
+
+If that commit is no longer an ancestor of `HEAD` (the branch was rebased or force-pushed), that diff would pick up whatever landed on the base in between, so do the full review instead. Otherwise Steps 4–7 cover only that diff, checked against the open items. Don't re-raise points that were settled, and frame the output as "Round N". If you haven't reviewed it before, do the full review.
+
+**CI state.** Run `gh pr checks <number>` and read every row. A check's name may not say everything it runs (a "Build" check can include lint), and one green check says nothing about the others. Mention any failing or pending check in the summary. The exit code is data, not an error: it is `8` while checks are pending and non-zero when one has failed.
 
 ---
 
@@ -166,19 +173,27 @@ This approach balances completeness with efficiency. For a 10-file PR with 800 l
 
 If doing a focused review due to PR size, say so explicitly in the summary: "Large PR — review focused on [specific areas]; [what was skipped] were not examined in detail."
 
-**Validate findings before writing them up.** Hand the analysis to two subagents and show only what survives both:
+**Validate findings before writing them up.** Hand your draft findings to two subagents. Each one checks the findings in its own area, and a finding is dropped if either one refutes it:
 
-1. one reviews the diff for correctness, design, tests and naming;
-2. one checks the diff against the story and its ACs (if a story was fetched) and the repo conventions from Step 3.
+1. **code** checks findings about the diff itself: correctness, design, tests and naming;
+2. **story** checks findings about the story and its ACs (if a story was fetched) and the repo conventions from Step 3.
+
+A subagent confirms a finding by pointing to the code or text that makes it true, and refutes it by showing that code or text says otherwise. Each may also add a finding in its own area, which goes through the same check.
+
+For small PRs (the threshold above), skip the subagents and do the two passes yourself, one after the other. Do the same if subagents aren't available.
 
 When briefing them:
 
-- **One worktree per subagent** (`/tmp/pr-review-<repo>-<number>-<agent>`), created as in Step 4. Agents sharing a checkout see each other's test merges and scratch files, and report them as problems with the author's branch.
+- **One worktree per subagent**, on the same commit as the review worktree, so a push during the review can't put the agents on a different commit. No fetch is needed:
+  ```bash
+  SHA=$(git -C /tmp/pr-review-<repo>-<number> rev-parse HEAD)
+  git worktree add --detach /tmp/pr-review-<repo>-<number>-code "$SHA"
+  git worktree add --detach /tmp/pr-review-<repo>-<number>-story "$SHA"
+  ```
+  Agents sharing a checkout see each other's test merges and scratch files, and report them as problems with the author's branch.
 - **Describe disagreements neutrally.** If code and docs disagree, ask "do X and Y agree, and which is right?", not "does X break Y?", which treats Y as the authority. Two passes that share one wrong premise will agree with each other.
 - **Treat deleted intent as evidence.** If the diff removes text explaining why something exists, check whether that deletion is right rather than accepting it as tidying.
 - **Search at a ref, not the working tree.** Outside the review worktree, use `git grep <pattern> origin/<default> -- <path>` or `git show origin/<default>:<path>`. A local checkout may be parked on an old branch.
-
-If subagents aren't available, do the two passes yourself, one after the other.
 
 ---
 
@@ -250,7 +265,8 @@ Remove each subagent worktree from Step 6 as soon as its findings are in. Remove
 
 ```bash
 git worktree remove --force /tmp/pr-review-<repo>-<number>
-git worktree remove --force /tmp/pr-review-<repo>-<number>-<agent>
+git worktree remove --force /tmp/pr-review-<repo>-<number>-code
+git worktree remove --force /tmp/pr-review-<repo>-<number>-story
 ```
 
 If removal fails, note it briefly to the user but do not block.
