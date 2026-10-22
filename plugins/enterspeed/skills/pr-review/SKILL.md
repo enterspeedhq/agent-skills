@@ -106,10 +106,10 @@ If the worktree cannot be created, proceed with diff-only review and note this t
 
 ## Step 5: Check for pre-flight log
 
-With the worktree created, look for a file matching `.pre-flight/<head-branch>*.md`:
+With the worktree created, look for the log **pre-flight** writes: `.pre-flight/<YYYY-MM-DD>-<head-branch>.md`, with every `/` in the branch name replaced by `-` (so `feature/sc-1234/foo` becomes `2026-10-22-feature-sc-1234-foo.md`):
 
 ```bash
-ls .pre-flight/<head-branch>* 2>/dev/null
+ls .pre-flight/*-$(echo '<head-branch>' | tr / -).md 2>/dev/null
 ```
 
 If no log exists, note it once in the review output:
