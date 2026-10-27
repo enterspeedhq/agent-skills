@@ -1,6 +1,6 @@
 ---
 name: pr-submit-review
-version: 1.0.0
+version: 1.1.0
 description: Submit a GitHub PR review — approve, request changes, or comment. Use this skill whenever the user says "approve PR", "request changes on PR", "submit my review", "post a review", "approve this PR", "reject this PR", "leave a comment on the PR", or asks to publish feedback on a pull request. Requires the GitHub CLI (gh). Must be run from inside a git repository.
 ---
 
@@ -38,7 +38,7 @@ If the conversation already contains a PR review (from the `pr-review` skill or 
 
 ### When to approve vs. request changes (Google Engineering Practices)
 
-**Approve** when the change improves overall code health, even if it isn't perfect. A PR doesn't need to be flawless — it needs to be incrementally better. Approve with `nitpick:` or `suggestion (non-blocking):` comments when issues are minor.
+**Approve** when the change improves overall code health, even if it isn't perfect. A PR doesn't need to be flawless — it needs to be incrementally better. Approve with non-blocking comments when issues are minor.
 
 **Request changes** only when:
 - The change would worsen overall code health, or
@@ -46,26 +46,18 @@ If the conversation already contains a PR review (from the `pr-review` skill or 
 
 Do not block on style preferences that aren't covered by the team's style guide. If something is worth noting but not blocking, use `--comment` instead.
 
-### Emoji conventions
+### Blocking findings
 
-Use these prefixes to make the review scannable at a glance:
+A finding is **blocking** when it opens with `**Blocking:**`, the marker `pr-review` puts on findings that must be resolved before approval. Findings carry no other labels; everything without the marker is non-blocking. Any blocking finding means `--request-changes` unless the user says otherwise; none means approve or comment. If the user asks for request-changes on a body with no blocking finding, ask which finding blocks before submitting.
 
-| Label | Emoji |
-|-------|-------|
-| `issue (blocking):` | 🚫 |
-| `issue (non-blocking):` | ⚠️ |
-| `suggestion:` | 💡 |
-| `nitpick:` | 🔍 |
-| `question:` | ❓ |
-| `praise:` | ✨ |
-| `thought:` | 💭 |
+If the body comes from the user's own notes and uses Conventional Comments labels instead, treat `issue (blocking):` and `todo (blocking):` the same way.
 
 ### Review structure
 
 Always order the body as follows, regardless of action type:
 
-1. **Blockers / issues** — what must change (skip section if none)
-2. **Suggestions / nitpicks** — non-blocking improvements (skip section if none)
+1. **Blockers** — the blocking findings (skip section if none)
+2. **Suggestions** — non-blocking findings (skip section if none)
 3. **Positives** — what worked well (always include, always substantive)
 
 The positives section is the last thing the author reads — expand on it. Name specific decisions, call out good patterns, or note what made the PR easy to review. One genuine sentence beats three vague ones.
@@ -88,11 +80,11 @@ Example of a grouped section:
 ### 🚫 Blockers
 
 #### Flow handling
-- 🚫 `issue (blocking):` The early-return on line 42 skips the cleanup call — this will leak state on error paths.
-- 🚫 `issue (blocking):` The loop on line 67 doesn't account for an empty list and will throw.
+- **Blocking:** does the early return on line 42 skip the cleanup call? On error paths that leaks state.
+- **Blocking:** what happens at line 67 when the list is empty? It looks like it throws.
 
 #### Auth
-- 🚫 `issue (blocking):` Token is logged in plain text on line 88.
+- **Blocking:** the token is logged in plain text on line 88. Can it be dropped from the log line?
 ```
 
 Omit a section header entirely if that section has no content (except Positives, which is always present).
@@ -101,7 +93,7 @@ Omit a section header entirely if that section has no content (except Positives,
 
 **Approve** — 1–3 sentences. Lead with any non-blocking suggestions, then close with what specifically made this approvable.
 
-**Request changes** — 3–5 bullets maximum, covering only what *must* be fixed before merge. Prefix each with the relevant emoji label. If the user's draft exceeds 5 blockers, flag it and ask which items are truly blocking before submitting. Always end with a positives section.
+**Request changes** — 3–5 bullets maximum, covering only what *must* be fixed before merge. Each opens with `**Blocking:**`. If the user's draft exceeds 5 blockers, flag it and ask which items are truly blocking before submitting. Always end with a positives section.
 
 **Comment** — Use when the verdict isn't clear yet, or you want to leave notes without blocking or approving. Freeform; match length to the content. Still end with positives if there are any.
 
@@ -115,7 +107,7 @@ When submitting via `gh`, pass the body as a multiline heredoc so newlines are p
 gh pr review <number> --approve --body "$(cat <<'EOF'
 ### 💡 Suggestions
 
-- 💡 `suggestion:` The helper in `utils.ts` could be extracted to a shared module — it's duplicated in two places already.
+- Could the helper in `utils.ts` move to a shared module? It's duplicated in two places already.
 
 ### ✨ What worked well
 
