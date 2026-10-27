@@ -1,11 +1,11 @@
 ---
 name: pr-review
-description: Review a pull request in the current git repository. Use this skill whenever the user says "review PR", "review pull request", "check PR #N", "look at PR", "give me a PR review", or provides a PR number and asks for feedback. Requires the GitHub CLI (gh) to be installed. Must be run from inside a git repository.
+description: Review a pull request in the current git repository. Use this skill whenever the user says "review PR", "review pull request", "check PR #N", "look at PR", "give me a PR review", or provides a PR number and asks for feedback. Also use it for PRs that add or change an ADR or RFC, e.g. "review the ADR", "go over the new RFC", "check this decision doc". Requires the GitHub CLI (gh) to be installed. Must be run from inside a git repository.
 ---
 
 # PR Reviewer
 
-Checks out a pull request, reads the diff and any repo best-practice docs, then delivers a structured review summary and focused attention points.
+Checks out a pull request, reads the diff and any repo best-practice docs, then briefs the reviewer (what the PR achieves, how it works, where it sits, what needs their decision) before drafting a review for their approval. ADR and RFC PRs are reviewed in [document mode](references/document-mode.md).
 
 > **Important:** All checkout and file-level work happens in a dedicated tmp worktree created specifically for this review (e.g. `/tmp/pr-review-<repo>-<number>`). Steps 2 and 3 run in the current working directory as normal. Never use the primary working directory for checkout — this review must not interfere with other in-progress work.
 
@@ -47,7 +47,7 @@ If no match anywhere, skip all story steps silently. Do not mention it.
 
 If a story ID is found, call `stories-get-by-id` with the numeric part of the ID:
 
-- If the Shortcut MCP tool is unavailable or returns an error for any reason: skip silently, proceed as today
+- If the Shortcut MCP tool is unavailable or returns an error: retry once, and have the subagents try too (they often succeed when the main session can't). If it still fails, proceed without it, but say so in one line in the briefing ("story not fetched: <error>"). The Tests section then can't map acceptance criteria to tests, and on a later round an open item may be hidden
 - If the story is found: store the title, description, and acceptance criteria for use in Step 8
 
 **Earlier review rounds.** Read the reviews in full, not `reviewDecision`. That field is a summary that a `COMMENTED` review doesn't change, so it can read `APPROVED` while a later, substantive review sits unread. Most of a round usually lives in the inline comments and the replies under them, which come from a separate endpoint; `gh pr view --json comments` returns neither. Both endpoints return 30 items per page, so paginate:
@@ -64,9 +64,11 @@ If you have already reviewed this PR, this is round N+1. List what your last rev
 git merge-base --is-ancestor <commit_id> HEAD && git diff <commit_id>..HEAD
 ```
 
-If that commit is no longer an ancestor of `HEAD` (the branch was rebased or force-pushed), that diff would pick up whatever landed on the base in between, so do the full review instead. Otherwise Steps 4–7 cover only that diff, checked against the open items. Don't re-raise points that were settled, and frame the output as "Round N". If you haven't reviewed it before, do the full review.
+If that commit is no longer an ancestor of `HEAD` (the branch was rebased or force-pushed), that diff would pick up whatever landed on the base in between, so do the full review instead. Otherwise Steps 4–7 cover only that diff, checked against the open items. Don't re-raise points that were settled, and frame the output as "Round N". Subagent validation (Step 6) then applies only to new findings from that diff; if there are none, skip it. If you haven't reviewed it before, do the full review.
 
-**CI state.** Run `gh pr checks <number>` and read every row. A check's name may not say everything it runs (a "Build" check can include lint), and one green check says nothing about the others. Mention any failing or pending check in the summary. The exit code is data, not an error: it is `8` while checks are pending and non-zero when one has failed.
+**CI state.** Run `gh pr checks <number>` and read every row. A check's name may not say everything it runs (a "Build" check can include lint), and one green check says nothing about the others. Mention any failing or pending check in the briefing. The exit code is data, not an error: it is `8` while checks are pending and non-zero when one has failed.
+
+**Pick the mode.** If every changed file is a decision document (an ADR, an RFC, or the repo's equivalent: look for `docs/adr/`, `docs/rfc/`, or what the repo guide calls one) plus at most incidental index or link edits, this is a **document review**: follow the overrides in [references/document-mode.md](references/document-mode.md). Otherwise it is a code review. A PR that mixes a decision document with the code implementing it is a code review, with the document mode's decision check added to the briefing.
 
 ---
 
@@ -83,6 +85,7 @@ Search the repo root (and `.github/`) for any of these files. Read any that exis
 - `docs/*-guidelines.md`
 - `.github/PULL_REQUEST_TEMPLATE.md`
 - `CLAUDE.md` (team AI conventions)
+- `AGENTS.md` (agent conventions; a `CLAUDE.md` may only import it with `@AGENTS.md`)
 
 Note which sections are relevant to the changes in this PR. You will use them to calibrate your review. If none of these files exist, proceed without them — just review the diff against general engineering practices.
 
@@ -171,7 +174,7 @@ git diff origin/<base-branch>...HEAD
 
 This approach balances completeness with efficiency. For a 10-file PR with 800 lines changed, targeted reading can reduce token cost by 40-60% compared to reading the full diff.
 
-**Every changed file is accounted for.** Keep a checklist built from the `--name-status` output — not from what you remember reading — and mark each file `reviewed` or `skipped` with a concrete reason. Targeted reading changes *how* you read a file, never *whether* you read it: agents reviewing large PRs tend to quietly cover some files and drop others, and nobody can tell from the review which ones. If the PR is too large to read every file, say so in the summary and list the skipped files and why.
+**Every changed file is accounted for.** Keep a checklist built from the `--name-status` output — not from what you remember reading — and mark each file `reviewed` or `skipped` with a concrete reason. Targeted reading changes *how* you read a file, never *whether* you read it: agents reviewing large PRs tend to quietly cover some files and drop others, and nobody can tell from the review which ones. If the PR is too large to read every file, say so in the briefing and list the skipped files and why.
 
 **Validate findings before writing them up.** Hand your draft findings to two subagents. Each one checks the findings in its own area, and a finding is dropped if either one refutes it:
 
@@ -206,100 +209,86 @@ Before writing anything up, check every `issue`, `todo` and `suggestion` you int
    grep -nF '<the most distinctive line of the quote>' path/to/file
    ```
    Pick a line that can only match once — not `}` or `return null;`. If `grep` still returns several matches, use the one whose surrounding lines match the rest of the quote. Take the line number from `grep`, not from memory. If the quote isn't found, re-read the file: either fix the quote or drop the point.
-2. **Point at changed code.** If the quoted line isn't part of this PR's diff, the point is about existing code — raise it as `note:` or `thought:`, not as an `issue` on this PR. The exception is evidence: an untested caller of a method this PR changes is a fair `issue`, anchored on the changed method.
+2. **Point at changed code.** If the quoted line isn't part of this PR's diff, the point is about existing code — tag it `note` or `thought`, not `issue`, and never blocking. The exception is evidence: an untested caller of a method this PR changes is a fair `issue`, anchored on the changed method.
 3. **"Missing" needs a search.** For anything reported as absent (no test, no migration, no null check), search for the actual symbol — the class, method or table name — not a guessed filename, and mention the search in the point. A filename pattern that finds nothing proves nothing.
-4. **Drop it, or ask it, if you can't show it.** If you can't point to the line that makes a point true, rephrase it as a `question` or leave it out.
+4. **Drop it, or ask it, if you can't show it.** If you can't point to the line that makes a point true, retag it `question` or leave it out.
 
 Points that survive go into the review with their `file:line`.
 
 ---
 
-## Step 8: Deliver the review
+## Step 8: Brief the reviewer, then draft
 
-Use **Conventional Comments** labels throughout to make intent unambiguous (full reference in the Comment format section below). Each observation should be prefixed with the appropriate label, e.g. `issue (blocking):`, `suggestion (non-blocking):`, `nitpick:`.
+Present a briefing for the reviewer **before** any finding or draft. Use this layout by default; the reviewer should not have to ask for it. See [references/briefing-example.md](references/briefing-example.md) for a worked example.
 
-Present the review in this structure:
+1. **What it achieves.** Two plain lines. Never a bare story or PR number; always give its title.
+2. **How it works.** Before → after. Use an ASCII flow or timing diagram when behaviour changes.
+3. **Where it sits.**
+   - Which RFCs, ADRs or design docs it implements or departs from.
+   - Which other open PRs touch the same files or are stacked with it. Name the hunks, and say whether the overlap is real or only textual. Find them with `gh pr list --state open --json number,title,files`, filtered on the changed paths. Then read the reviewer's own latest review on every overlapping PR — above all doc PRs touching the same ADR. A PR that withdraws what the reviewer approved elsewhere minutes earlier reads as textual overlap unless you do.
+4. **What needs you.** A **numbered** list of decisions, each marked *product* or *technical*, with options as short code or JSON and the author's own proposal first, so the reviewer can answer in one line per item ("1 agree, 2 yes, 3 …"). Their answers go into the draft in their own words, as their view rather than a ruling. For a new external surface, have prior art from comparable platforms ready. Say plainly when there is nothing to decide. Bookkeeping (coverage as [N]/[N] files reviewed with any skipped file and its reason, approval count, CI, re-runs) goes in one line. Then a one-line **Not raised** list of what validation or judgement cut, so the reviewer sees the filtering without reading the noise. It is for the reviewer only and never goes into the draft.
+5. **Tests.** Map each acceptance criterion to the test that proves it, and highlight every missing test. Weigh high-level tests most — the repo's highest-level test (an HTTP-level e2e or an integration test against the real entry point) usually translates directly to an AC, so a missing one on a behaviour change is called out even when unit tests exist. A gap you judge acceptable is still stated, with the reason. A missing test never blocks: the draft encourages adding it, and the author chooses between this PR and a follow-up, like any other non-blocking finding.
+   **Stop after the briefing (1–5)** and wait for the reviewer's answers to "What needs you" before drafting. If there is nothing to decide, say so and ask whether to draft.
+6. **The draft.**
+   - Plain language and short.
+   - Code blocks rather than inline code for `file:line` evidence.
+   - Findings phrased as questions to the author, with no Conventional Comments labels (see [Comment format](#comment-format)). A **blocking** finding opens with `**Blocking:**` so it can't pass as a polite question; everything else is non-blocking.
+   - Close with one line that hands every non-blocking finding to the author: file follow-up stories, or fix them in this PR (another review round). **The choice is the author's judgement**, so don't steer it: no "fix it here", no suggested destination story or epic, no "your call, but I'd…". Don't offer to file follow-ups yourself.
+   - Show the full draft and wait for explicit approval before posting. It goes out in the reviewer's name.
+7. **Ledger**, after posting: what was posted (with link), who was re-requested, what was filed, what was cleaned up, and what is still open. Verify each post with `gh pr view <n> --json reviews` (a permission classifier may block `gh api …/reviews`), one PR per command rather than a shell loop. If removing a worktree is blocked, put the `git worktree remove` commands in the ledger for the reviewer to run.
 
----
+Terminal output by default; an artifact only on request.
 
-### PR #N — [Title]
+**Bundles.** When several PRs are reviewed together (a stack, a cross-repo pair, or one design across ADRs):
 
-**Author:** [name] | **Branch:** `[head]` → `[base]` | **Size:** +[additions] / -[deletions] across [N] files
-**Coverage:** [N]/[N] files reviewed _(list any skipped file with its reason)_
-_(If a story was fetched: `Story: sc-XXXX — [title]`)_
+- Answer the reviewer's framing question first, if they asked one, then give **one** briefing for the bundle: a one-row-per-PR table of what each decides or changes, one before → after for the whole, and **one** numbered "What needs you" list across all of them.
+- Overlap means PRs sharing a line or a decision, not just a file.
+- Post **one formal review per PR**. Shared hygiene goes once, on the first PR.
+- Subagents: in code mode, two per PR (`-code`, `-story`); in document mode, one per PR (`-doc`) doing both the direction and the corpus pass.
 
----
+**Before ranking a subagent's finding, check the strongest one yourself** against the source (`git grep` / `git show` at a ref). Agents overrate: one ranked an ADR override first that the ADR had already anticipated. Check findings against what the reviewer has already decided (their memory, earlier reviews): a deliberate org rule is not a finding. A repo-wide code-vs-docs gap goes under "What needs you" as its own question, and into the PR draft only where it is that PR's premise.
 
-#### Summary
+**What to look for while forming findings** — consider these in rough priority order, and only raise what stands out:
 
-2–4 sentences describing what this PR does, why it exists (based on the description and diff), and what it changes at a high level.
-
-If a story was fetched: add a sentence on story alignment — does the diff appear to address the story goal and acceptance criteria? If there are apparent gaps, surface them as `question (non-blocking):` items under "What to pay attention to". If the PR title or description doesn't reflect the story, raise as `suggestion (non-blocking):`.
-
----
-
-#### What to pay attention to
-
-A list of things the reviewer should look at closely. Each item should be specific — reference file names and line ranges where possible.
-
-Consider these categories in rough priority order, but focus on what matters most to this PR (based on Google Engineering Practices):
-
-1. **Design** — Does the overall approach make sense? Does this change belong here? Are component interactions sensible? Look for hardcoded constants that may need to vary by environment or behave differently between on-premise and multi-tenancy SaaS deployments.
-2. **Functionality** — Does the code do what it's supposed to? Check edge cases, concurrency issues, and user-facing behavior.
-3. **Complexity** — Is anything over-engineered or unnecessarily hard to follow? Watch for premature generalization or unused extensibility.
-4. **Tests** — Are there tests? If a story was fetched and has acceptance criteria, read the test diff and check each AC: is there a test that would catch a regression against it? Flag any AC with no corresponding test coverage as `issue (blocking):` — an untested AC is an unverified delivery. Beyond AC coverage: read a sample of the test diff itself — tests should assert observable behaviour, not internal implementation state. Do they cover the edge cases the diff actually touches?
-5. **Security** — Input validation, auth checks, secrets, SQL injection, XSS, data exposure.
+1. **Design** — Does the approach make sense, and does the change belong here? Look for hardcoded constants that may need to vary by environment or deployment.
+2. **Functionality** — Edge cases, concurrency, user-facing behaviour.
+3. **Complexity** — Over-engineering, premature generalisation, unused extensibility.
+4. **Tests** — If a story was fetched and has acceptance criteria, is there a test that would catch a regression against each AC? An AC with no test is an unverified delivery. Tests should assert observable behaviour, not internal state, and cover the edge cases the diff touches.
+5. **Security** — Input validation, auth checks, secrets, injection, data exposure.
 6. **Breaking changes** — API contract changes, schema migrations, removed or renamed fields.
 7. **Performance** — N+1 queries, missing indexes, large allocations in hot paths.
-8. **Naming** — Are names clear and accurate? Do they communicate intent without being excessively long?
-9. **Comments** — Do code comments explain _why_, not _what_? Is anything unclear enough to warrant a comment?
-10. **Documentation** — Does any README, guide, or reference doc need updating?
-11. **Style / best practices** — Anything that contradicts the repo's own CONTRIBUTING / style docs.
+8. **Naming**, **Comments** (why, not what), **Documentation**, and **Style** against the repo's own docs.
 
-Only include categories where something stands out. Skip the rest.
-
----
-
-#### Checklist alignment
-
-If a PR template (`.github/PULL_REQUEST_TEMPLATE.md`) exists in the repo, check whether the PR description addresses each checklist item in substance — prose that covers the test plan or checklist counts even without the template's headings:
-
-- **Unanswered / skipped** — flag as `question (non-blocking):` and ask the author to confirm intentionality
-- **Clearly violated** (e.g. checklist says "tests required" and there are none) — flag as `issue (blocking):`
-
----
-
-#### Suggested questions for the author
-
-2–4 open questions to ask the PR author — things that are unclear from the diff alone or that could affect the review decision.
-
-For any non-blocking point worth acting on, ask the author whether they'd rather file a follow-up story or fold the fix into this PR (which means another review round). Otherwise a non-blocking comment on an approved PR disappears when it merges.
+**Checklist alignment** — if `.github/PULL_REQUEST_TEMPLATE.md` exists, check whether the PR description addresses each item in substance — prose that covers the test plan or checklist counts even without the template's headings. An unanswered item is a question to the author; a clearly violated one is a blocking finding. Tests are the exception: a "tests required" item with no tests follows Step 8.5 and never blocks.
 
 ---
 
 ## Step 9: Clean up the worktree
 
-Remove each subagent worktree from Step 6 as soon as its findings are in. Remove the review worktree once the review is finished — after it is posted, or after the user decides not to post it. Posting waits for the user's approval, and the draft may need re-checking against the code until then:
+Remove each subagent worktree from Step 6 as soon as its findings are in. Remove the review worktree after the ledger (Step 8.7) — not before, because posting waits for the reviewer's approval and the draft may need re-checking against the code:
 
 ```bash
-git worktree remove --force /tmp/pr-review-<repo>-<number>
-git worktree remove --force /tmp/pr-review-<repo>-<number>-code
-git worktree remove --force /tmp/pr-review-<repo>-<number>-story
+for suffix in "" -code -story -direction -corpus -doc; do
+  wt="/tmp/pr-review-<repo>-<number>$suffix"
+  [ -d "$wt" ] && git worktree remove --force "$wt"
+done
 ```
+
+The suffixes cover both modes: `-code`/`-story` in code mode, `-direction`/`-corpus` in document mode, `-doc` per PR in a document-mode bundle.
 
 If removal fails, note it briefly to the user but do not block.
 
 ---
 
+## Document mode
+
+When Step 2 picks document mode (an ADR- or RFC-only PR), read [references/document-mode.md](references/document-mode.md) and apply its overrides to Steps 4, 6 and 8. Every other step runs as written.
+
+---
+
 ## Comment format
 
-Use **Conventional Comments** labels to make intent unambiguous:
-
-```
-<label> [decorations]: <subject>
-
-[optional discussion]
-```
+Tag every finding internally with a **Conventional Comments** label, so you and the reviewer can sort and validate findings in the briefing. The tags never appear in the posted draft: there, the only marker is `**Blocking:**` at the start of a blocking finding (Step 8.6). "Blocking" is the one term for "must be resolved before approval"; everything without it is non-blocking.
 
 | Label        | When to use                                                               |
 | ------------ | ------------------------------------------------------------------------- |
@@ -312,13 +301,15 @@ Use **Conventional Comments** labels to make intent unambiguous:
 | `note`       | Informational observation, no action required                             |
 | `todo`       | A small but necessary change before merge                                 |
 
-Decorations to add in parentheses after the label:
+Mark each tag `(blocking)` or `(non-blocking)`. Only an `issue` or a `todo` can be blocking.
 
-- `(blocking)` — must be resolved before approval
-- `(non-blocking)` — can merge, but worth following up
-- `(if-minor)` — only act on this if the fix is trivial
+Example, as tagged in the briefing and as it reads in the draft:
 
-Example: `suggestion (non-blocking): Extract this into a helper function — the pattern repeats in three places already.`
+```
+issue (blocking): retry loop never exits when the queue is empty — Worker.cs:42
+
+**Blocking:** what ends the loop at `Worker.cs:42` when the queue is empty? As written it spins until the host stops it.
+```
 
 ---
 
@@ -327,6 +318,6 @@ Example: `suggestion (non-blocking): Extract this into a helper function — the
 - Focus on the code, not the person. "This function is hard to follow" not "you wrote this confusingly."
 - Always explain the _why_ — developers should understand the reasoning, not just the verdict.
 - Approve when the change improves overall code health, even if it isn't perfect. Don't block on style preferences.
-- Use `nitpick:` or `suggestion (non-blocking):` for things that aren't worth blocking on.
+- Mark a finding blocking only when it must change before merge; everything else is non-blocking and goes out as a plain question.
 - Recognize good work — call out clean design, smart test coverage, or a well-named abstraction.
 - If code needs a comment to be understood, ask the author to rewrite it rather than just explaining it in the review thread.
