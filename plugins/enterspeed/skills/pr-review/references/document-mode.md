@@ -26,3 +26,31 @@ The two subagents' briefs change accordingly, each in its own worktree on the re
 - **What needs you** separates *product* decisions (scope, billing, customer-facing behaviour) from *technical* ones. In document mode most findings are questions for the team, not fixes: name the decision and the constraints it must satisfy, and leave the answer to the authors.
 - Hygiene (formatting, links, dates, numbering style) goes in one line at the end of the draft, if at all.
 
+## Example
+
+A made-up document review. Follow the shape, not the content.
+
+**Input.** PR #88, "docs: ADR-020 webhooks carry the event, not the data". Adds `docs/adr/020-webhook-payload.md` (status `Accepted`) and one line in the ADR index. The ADR ratifies RFC-007 (lean webhook payloads) and says: "Payloads drop `data`; consumers fetch it by id. The event schema is otherwise unchanged. Payloads are signed with HMAC-SHA256."
+
+**Output: the briefing.**
+
+- **What it decides.** Webhooks stop embedding the changed record; they carry its id, and the consumer fetches the data. It ratifies RFC-007 (lean webhook payloads).
+- **What changes.**
+  ```
+  before: { "event": "updated", "id": "p-1", "data": { …full record… } }
+  after:  { "event": "updated", "id": "p-1" }        → GET /records/p-1
+  ```
+- **Where it sits.** RFC-007 is the standard. ADR-012 (at-least-once delivery) is untouched. Number 020 is free on `origin/main` and on open branches. No other open PR touches the ADR folder.
+- **Decision check.**
+  1. Reversal not on the record: "the event schema is otherwise unchanged", but dropping `data` is a breaking schema change for every current consumer.
+  2. Closed by implication: RFC-007 left signing open ("HMAC or asymmetric, to decide"); the ADR states HMAC-SHA256 as settled, with no reasoning.
+  3. Nothing else RFC-007 left open is written down as settled.
+  Genre and status: agreement, `Accepted` on merge, as the repo's ADR README says.
+- **What needs you.**
+  1. *Technical*: say the schema change happened, or argue it isn't breaking? (a) author's text as is, (b) record it as a breaking change.
+  2. *Technical*: is signing decided? (a) keep HMAC in the ADR, with its reasoning, (b) move it back to RFC-007 as open.
+  3. *Product*: do current consumers get a migration window? Not the ADR's call; it should name the constraint and leave the answer to the team.
+
+  Coverage 2/2 files. **Not raised:** index line ordering (hygiene).
+
+*Stop here and wait for answers.* The draft then asks the author questions 1 and 2 in the reviewer's words and puts 3 to the team as a question, not a fix.

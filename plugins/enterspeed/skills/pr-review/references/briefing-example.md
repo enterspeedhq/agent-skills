@@ -1,10 +1,30 @@
 # Briefing example (code mode)
 
-A made-up review showing the Step 8 layout end to end. The repo, PR and story are fictional; follow the shape, not the content.
+A made-up review showing the Step 8 layout end to end: the input, then the output. The repo, PR and story are fictional; follow the shape, not the content.
 
----
+## Input
 
-## Briefing: #142, retry failed webhook deliveries
+**PR #142, "feat [sc-1234]: retry failed webhook deliveries"**
+
+> Retries a delivery on 5xx or timeout, five attempts with exponential backoff, then dead-letters it. Also retries 429 and honours `Retry-After`, which ADR-012 says not to; I think it should. Customers aren't told about dead-lettered deliveries yet. Open question for product.
+
+```
+ src/Delivery/DeliveryWorker.cs          | 64 +++++++++----
+ src/Delivery/BackoffPolicy.cs           | 38 ++++++++
+ src/Delivery/DeadLetterSink.cs          | 22 +++++
+ src/Delivery/DeliveryOptions.cs         |  6 +-
+ tests/Delivery/DeliveryWorkerTests.cs   | 91 ++++++++++++++++++
+ tests/Delivery/BackoffPolicyTests.cs    | 30 ++++++
+```
+
+**Story sc-1234 (retry failed webhook deliveries), acceptance criteria:**
+- A 5xx response is retried with backoff.
+- Delivery gives up after five attempts and dead-letters the message.
+- A timeout counts as a failure.
+
+Also found: #139 (rate-limit outbound webhooks) is open and touches `DeliveryWorker.cs`; the reviewer approved it earlier. CI green.
+
+## Output: the briefing
 
 **What it achieves.** A webhook delivery that fails with a 5xx or a timeout is retried up to five times with backoff, instead of being dropped. It implements sc-1234 (retry failed webhook deliveries).
 
@@ -46,11 +66,9 @@ Coverage 6/6 files; 1 approval (CI bot); CI green.
 
 *Stop here and wait for answers.*
 
----
-
 The reviewer answers: "1 a, 2 b, but that one goes to product".
 
-## Draft
+## Output: the draft
 
 > Thanks, the before/after in the description made this quick to follow.
 >
@@ -72,8 +90,6 @@ The reviewer answers: "1 a, 2 b, but that one goes to product".
 
 *Shown in full; posted only after the reviewer says yes.*
 
----
-
-## Ledger
+## Output: the ledger
 
 Posted request-changes on #142 (link). Re-requested: none. Filed: none. Worktrees removed. Open: the product question on exhausted deliveries, with product.
