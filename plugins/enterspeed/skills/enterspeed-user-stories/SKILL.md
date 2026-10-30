@@ -28,8 +28,8 @@ Both are valid starting points. Work with whatever is given.
 
 Put the title on the first line of the story, as `**Title:** …`. Write it as the outcome: what is true once the story is done, in a short line that scans on a board.
 
-- ✅ "A customer can upload a full export to a snapshot source without integration code"
-- ❌ "A customer with a nightly export has to write integration code to send it, because the only way in is POST /entities"
+- ✅ "Editors can filter food items by allergen"
+- ❌ "Editors can't find allergen-free items, because views have no allergen filter"
 
 Avoid problem statements ("X can't Y") and "because" clauses as titles. They read as false once the story is completed, run long in branch names, and fix a diagnosis before the work starts. The problem belongs in **💡 Why**.
 
@@ -62,14 +62,14 @@ Avoid problem statements ("X can't Y") and "because" clauses as titles. They rea
 
 ---
 
-### 🔒 Security
-> Security considered — assessed as **low risk**. No auth, input validation, or data exposure concerns identified for this story.
-
----
-
 ### 🔧 Open to the Implementer (optional)
 *You may change these; give the reason in the PR.*
 - [Default approach, endpoint, or component reuse — leave blank if unknown]
+
+---
+
+### 🔒 Security
+> Security considered — assessed as **low risk**. No auth, input validation, or data exposure concerns identified for this story.
 
 ---
 
@@ -90,8 +90,8 @@ Avoid problem statements ("X can't Y") and "because" clauses as titles. They rea
 - **💡 Why** — Always included. State the gap in plain language. Cite the code or ADR it comes from when known.
 - **✅ Acceptance Criteria** — Always included. Write at least 3 criteria: a happy path, an edge case, and an error/failure scenario. In the Enterspeed context, edge cases include things like missing or malformed source data (e.g. empty SKU, null field), large result sets, or schema mismatches.
 - **📌 Fixed Decisions** — Include only when an ADR or earlier decision already settles part of the design. One bold lead sentence per decision, citing its source. Omit the section when nothing is fixed.
-- **🔒 Security** — Always included. For most stories, keep it simple: state that security was considered and assessed as low risk. Only escalate to a brief description of the specific risk if the feature involves authentication, mutations, sensitive data, or access control.
 - **🔧 Open to the Implementer** — Optional. Implementation choices the story suggests but does not require. Include if the input mentions technical details (endpoints, components, filters). Otherwise leave the section with a placeholder.
+- **🔒 Security** — Always included. For most stories, keep it simple: state that security was considered and assessed as low risk. Only escalate to a brief description of the specific risk if the feature involves authentication, mutations, sensitive data, or access control.
 - **📊 Success Criteria** — Always included. Write a concrete, measurable definition of done — not vague language like "works correctly". Prefer the one test or demo that proves it.
 - **🎨 Design** — Optional. Include only if the feature clearly involves UI. Otherwise omit entirely.
 - **Dependency line** — Include only when the story blocks or is blocked by another. Otherwise omit.
