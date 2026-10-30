@@ -1,6 +1,6 @@
 ---
 name: enterspeed-user-stories
-version: 1.1.0
+version: 1.0.0
 description: Generate well-structured user stories for Enterspeed using the standard team template. Use when someone describes a feature, capability, or user role + goal — and also for chore, technical-debt, or migration tasks, which use the same template. Works from rough ideas or a specific role + goal. Do not use for bug fixes or retrospective analysis.
 ---
 
@@ -26,7 +26,7 @@ Both are valid starting points. Work with whatever is given.
 
 ## The Title
 
-Write the title as the outcome: what is true once the story is done, in a short line that scans on a board.
+Put the title on the first line of the story, as `**Title:** …`. Write it as the outcome: what is true once the story is done, in a short line that scans on a board.
 
 - ✅ "A customer can upload a full export to a snapshot source without integration code"
 - ❌ "A customer with a nightly export has to write integration code to send it, because the only way in is POST /entities"
@@ -36,6 +36,8 @@ Avoid problem statements ("X can't Y") and "because" clauses as titles. They rea
 ## The Template
 
 ```
+**Title:** [Outcome, short]
+
 ### 🎯 User Story
 **As a** [user role],
 **I want** [capability],
