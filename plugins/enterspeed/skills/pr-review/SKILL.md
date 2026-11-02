@@ -135,7 +135,7 @@ ls .pre-flight/*-$(echo '<head-branch>' | tr / -).md 2>/dev/null
 
 If no log exists, note it once in the review output:
 
-> `note:` No pre-flight log found for this branch. The author may not have run a self-check before raising this PR.
+> No pre-flight log found for this branch. The author may not have run a self-check before raising this PR.
 
 Do not block, flag, or repeat this. One line, move on.
 
@@ -226,7 +226,7 @@ Present a briefing for the reviewer **before** any finding or draft. Use this la
 3. **Where it sits.**
    - Which RFCs, ADRs or design docs it implements or departs from.
    - Which other open PRs touch the same files or are stacked with it. Name the hunks, and say whether the overlap is real or only textual. Find them with `gh pr list --state open --json number,title,files`, filtered on the changed paths. Then read the reviewer's own latest review on every overlapping PR — above all doc PRs touching the same ADR. A PR that withdraws what the reviewer approved elsewhere minutes earlier reads as textual overlap unless you do.
-4. **What needs you.** A **numbered** list of decisions, each marked *product* or *technical*, with options as short code or JSON and the author's own proposal first, so the reviewer can answer in one line per item ("1 agree, 2 yes, 3 …"). Their answers go into the draft in their own words, as their view rather than a ruling. For a new external surface, have prior art from comparable platforms ready. Say plainly when there is nothing to decide. Bookkeeping (coverage as [N]/[N] files reviewed with any skipped file and its reason, approval count, CI, re-runs) goes in one line. Then a one-line **Not raised** list of what validation or judgement cut, so the reviewer sees the filtering without reading the noise. It is for the reviewer only and never goes into the draft.
+4. **What needs you.** A **numbered** list of decisions, each marked *product* or *technical*, with options as short code or JSON and the author's own proposal first, so the reviewer can answer in one line per item ("1 agree, 2 yes, 3 …"). Their answers go into the draft in their own words, as their view rather than a ruling. For a new external surface, have prior art from comparable platforms ready. Say plainly when there is nothing to decide. Bookkeeping (coverage as [N]/[N] files reviewed with any skipped file and its reason, approval count, CI, re-runs) goes in one line. Under it, **Findings**: one line per finding that survived Steps 6–7, with its tag (see [Comment format](#comment-format)) and `file:line`, blocking first, so the reviewer sees every finding before answering. Then a one-line **Not raised** list of what validation or judgement cut, so the reviewer sees the filtering without reading the noise. It is for the reviewer only and never goes into the draft.
 5. **Tests.** Map each acceptance criterion to the test that proves it, and highlight every missing test. Weigh high-level tests most — the repo's highest-level test (an HTTP-level e2e or an integration test against the real entry point) usually translates directly to an AC, so a missing one on a behaviour change is called out even when unit tests exist. A gap you judge acceptable is still stated, with the reason. A missing test never blocks: the draft encourages adding it, and the author chooses between this PR and a follow-up, like any other non-blocking finding.
    **Stop after the briefing (1–5)** and wait for the reviewer's answers to "What needs you" before drafting. If there is nothing to decide, say so and ask whether to draft.
 6. **The draft.**
@@ -234,7 +234,7 @@ Present a briefing for the reviewer **before** any finding or draft. Use this la
    - Code blocks rather than inline code for `file:line` evidence.
    - Findings phrased as questions to the author, with no Conventional Comments labels (see [Comment format](#comment-format)). A **blocking** finding opens with `**Blocking:**` so it can't pass as a polite question; everything else is non-blocking.
    - Close with one line that hands every non-blocking finding to the author: file follow-up stories, or fix them in this PR (another review round). **The choice is the author's judgement**, so don't steer it: no "fix it here", no suggested destination story or epic, no "your call, but I'd…". Don't offer to file follow-ups yourself.
-   - Show the full draft and wait for explicit approval before posting. It goes out in the reviewer's name.
+   - Show the full draft and wait for explicit approval before posting. It goes out in the reviewer's name, exactly as approved: `pr-submit-review` posts it without reshaping.
 7. **Ledger**, after posting: what was posted (with link), who was re-requested, what was filed, what was cleaned up, and what is still open. Verify each post with `gh pr view <n> --json reviews` (a permission classifier may block `gh api …/reviews`), one PR per command rather than a shell loop. If removing a worktree is blocked, put the `git worktree remove` commands in the ledger for the reviewer to run.
 
 Terminal output by default; an artifact only on request.
@@ -288,7 +288,7 @@ When Step 2 picks document mode (an ADR- or RFC-only PR), read [references/docum
 
 ## Comment format
 
-Tag every finding internally with a **Conventional Comments** label, so you and the reviewer can sort and validate findings in the briefing. The tags never appear in the posted draft: there, the only marker is `**Blocking:**` at the start of a blocking finding (Step 8.6). "Blocking" is the one term for "must be resolved before approval"; everything without it is non-blocking.
+Tag every finding internally with a **Conventional Comments** label, so you and the reviewer can sort and validate findings in the briefing (the **Findings** list, Step 8.4). The tags never appear in the posted draft: there, the only marker is `**Blocking:**` at the start of a blocking finding (Step 8.6). "Blocking" is the one term for "must be resolved before approval"; everything without it is non-blocking.
 
 | Label        | When to use                                                               |
 | ------------ | ------------------------------------------------------------------------- |

@@ -54,6 +54,10 @@ after:   publish ──► POST endpoint ──► 5xx ──► retry queue
    - **b.** Also mark the delivery as failed in the API, so it shows in the customer's delivery log.
 
 Coverage 6/6 files; 1 approval (CI bot); CI green.
+**Findings:**
+- `issue (blocking)`: loop never exits when the queue is empty — `DeliveryWorker.cs:58`
+- `todo (non-blocking)`: ADR-012 doesn't record the `429` departure — `BackoffPolicy.cs:17`
+- `suggestion (non-blocking)`: no integration test for the timeout path — `DeliveryWorkerTests.cs`
 **Not raised:** naming of `BackoffPolicy` (taste); a subagent's "missing cancellation token" (it is passed at `DeliveryWorker.cs:31`).
 
 **Tests.**

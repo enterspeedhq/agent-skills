@@ -1,6 +1,6 @@
 ---
 name: pr-submit-review
-version: 1.1.0
+version: 1.0.0
 description: Submit a GitHub PR review — approve, request changes, or comment. Use this skill whenever the user says "approve PR", "request changes on PR", "submit my review", "post a review", "approve this PR", "reject this PR", "leave a comment on the PR", or asks to publish feedback on a pull request. Requires the GitHub CLI (gh). Must be run from inside a git repository.
 ---
 
@@ -35,6 +35,8 @@ If the action is ambiguous, ask before proceeding.
 ## Step 2: Draft the review body
 
 If the conversation already contains a PR review (from the `pr-review` skill or the user's own notes), use that as the source. Otherwise ask the user what they want to say.
+
+A draft the user has already approved in `pr-review` is posted **as approved**: don't restructure, relabel or add sections to it, since the user signed off on that text. The structure and formatting rules below apply only when you draft the body here, from the user's notes or from scratch. The action rules (blocking findings, approve vs. request changes) apply either way.
 
 ### When to approve vs. request changes (Google Engineering Practices)
 
