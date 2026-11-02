@@ -11,7 +11,7 @@ claude plugin marketplace add https://github.com/enterspeedhq/agent-skills
 claude plugin install enterspeed@enterspeed
 ```
 
-> **Note:** Once org-managed settings are fully configured, this step will happen automatically for all team members. Until then, each person runs the commands above once.
+> **Note:** Org-managed settings install the plugin automatically. Run `claude plugin list` first — if `enterspeed@enterspeed` is listed with `Scope: managed`, skip this step. Otherwise run the commands above once.
 
 ## Updates
 
