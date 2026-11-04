@@ -11,7 +11,7 @@ claude plugin marketplace add https://github.com/enterspeedhq/agent-skills
 claude plugin install enterspeed@enterspeed
 ```
 
-> **Note:** Once org-managed settings are fully configured, this step will happen automatically for all team members. Until then, each person runs the commands above once.
+> **Note:** Org-managed settings install the plugin automatically. Run `claude plugin list` first — if `enterspeed@enterspeed` is listed with `Scope: managed`, skip this step. Otherwise run the commands above once.
 
 ## Updates
 
@@ -24,7 +24,11 @@ claude plugin marketplace update enterspeed
 claude plugin update enterspeed@enterspeed
 ```
 
+Restart Claude Code to apply the update.
+
 > **Note:** The marketplace name is `enterspeed` (not the full GitHub URL). Run both commands — the first refreshes the index from GitHub, the second installs the latest version.
+
+> **Note:** Current Claude Code detects the install scope itself, so the same command updates org-managed and self-installed plugins. If the update fails with "not installed at scope user", your Claude Code is older and defaults to `user`: update Claude Code, or add `--scope managed`.
 
 ## Contributing
 
