@@ -26,12 +26,14 @@ Both are valid starting points. Work with whatever is given.
 
 ## The Title
 
-Put the title on the first line of the story, as `**Title:** …`. Write it as the outcome: what is true once the story is done, in a short line that scans on a board.
+Put the title on the first line of the story, as `**Title:** …`. Write it as the outcome: what is true once the story is done, in a short line that scans on a board. Use the present tense, as in the acceptance criteria: "Editors can…", not "Decided how to…" or "Editors will be able to…".
 
 - ✅ "Editors can filter food items by allergen"
 - ❌ "Editors can't find allergen-free items, because views have no allergen filter"
 
 Avoid problem statements ("X can't Y") and "because" clauses as titles. They read as false once the story is completed, run long in branch names, and fix a diagnosis before the work starts. The problem belongs in **💡 Why**.
+
+Bugs are the exception: a bug's title states the problem. Bugs don't use this skill.
 
 ## The Template
 
@@ -62,9 +64,9 @@ Avoid problem statements ("X can't Y") and "because" clauses as titles. They rea
 
 ---
 
-### 🔧 Open to the Implementer (optional)
+### 🔧 Open to the Implementer (if applicable)
 *You may change these; give the reason in the PR.*
-- [Default approach, endpoint, or component reuse — leave blank if unknown]
+- [A default the implementer may override]
 
 ---
 
@@ -89,10 +91,10 @@ Avoid problem statements ("X can't Y") and "because" clauses as titles. They rea
 - **🎯 User Story** — Always included. If only a rough idea is given, infer a sensible user role.
 - **💡 Why** — Always included. State the gap in plain language. Cite the code or ADR it comes from when known.
 - **✅ Acceptance Criteria** — Always included. Write at least 3 criteria: a happy path, an edge case, and an error/failure scenario. In the Enterspeed context, edge cases include things like missing or malformed source data (e.g. empty SKU, null field), large result sets, or schema mismatches.
-- **📌 Fixed Decisions** — Include only when an ADR or earlier decision already settles part of the design. One bold lead sentence per decision, citing its source. Omit the section when nothing is fixed.
-- **🔧 Open to the Implementer** — Optional. Implementation choices the story suggests but does not require. Include if the input mentions technical details (endpoints, components, filters). Otherwise leave the section with a placeholder.
+- **📌 Fixed Decisions** — Include only when an ADR or earlier decision already settles part of the design. One bold lead sentence per decision, citing its source — as a link to the file when it lives in an Enterspeed repo, not a bare "ingest/ADR-018". Omit the section when nothing is fixed.
+- **🔧 Open to the Implementer** — Choices the implementer may override, never implementation steps: no file lists, refactor steps or reuse hints. Omit the section when a spec or vectors pin the behaviour, or when there is nothing to offer.
 - **🔒 Security** — Always included. For most stories, keep it simple: state that security was considered and assessed as low risk. Only escalate to a brief description of the specific risk if the feature involves authentication, mutations, sensitive data, or access control.
-- **📊 Success Criteria** — Always included. Write a concrete, measurable definition of done — not vague language like "works correctly". Prefer the one test or demo that proves it.
+- **📊 Success Criteria** — Always included. Write a concrete, measurable definition of done — not vague language like "works correctly". Prefer the one test or demo that proves it. For a decision story, the measurable done is that the decision is merged and used by a named consumer; say that rather than repeat the first acceptance criterion.
 - **🎨 Design** — Optional. Include only if the feature clearly involves UI. Otherwise omit entirely.
 - **Dependency line** — Include only when the story blocks or is blocked by another. Otherwise omit.
 
