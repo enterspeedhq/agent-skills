@@ -21,14 +21,14 @@ To manually trigger an update:
 
 ```bash
 claude plugin marketplace update enterspeed
-claude plugin update enterspeed@enterspeed --scope managed
+claude plugin update enterspeed@enterspeed
 ```
 
 Restart Claude Code to apply the update.
 
 > **Note:** The marketplace name is `enterspeed` (not the full GitHub URL). Run both commands — the first refreshes the index from GitHub, the second installs the latest version.
 
-> **Note:** `--scope` must match where the plugin is installed — `claude plugin list` shows it. Org-managed installs are `managed`; without the flag the update defaults to `user` and fails with "not installed at scope user". If you installed the plugin yourself with the setup commands above, drop the flag.
+> **Note:** Current Claude Code detects the install scope itself, so the same command updates org-managed and self-installed plugins. If the update fails with "not installed at scope user", your Claude Code is older and defaults to `user`: update Claude Code, or add `--scope managed`.
 
 ## Contributing
 
