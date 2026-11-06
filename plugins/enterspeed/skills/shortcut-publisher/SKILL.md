@@ -22,23 +22,23 @@ If the Shortcut MCP tools are not available, guide the user to run the **shortcu
 
 ### 1. Get the workflow state ID
 
-Call `workflows-list` and find the `Product Development` workflow. Locate the `Draft` state ID within it.
+Call `list_workflows` and find the `Product Development` workflow. Locate the `Draft` state ID within it.
 
 ### 2. Get the current iteration ID
 
-Call `iterations-get-active` and pick the most recently started iteration.
+Call `get_current_iterations` and pick the most recently started iteration.
 
 ### 3. Get the Engineering team ID
 
-Call `teams-list` and find the team named `Engineering`.
+Call `list_teams` and find the team named `Engineering`.
 
 ### 4. Resolve the dependencies
 
-Resolve each story named in the dependency line to its ID. If a named story can't be resolved, ask the user before creating anything rather than dropping it.
+Resolve each story named in the dependency line to its ID with `get_story` (by ID) or `search_stories` (by name). If a named story can't be resolved, ask the user before creating anything rather than dropping it.
 
 ### 5. Create the story
 
-Call `stories-create` with:
+Call `create_story` with:
 
 ```json
 {
@@ -47,7 +47,7 @@ Call `stories-create` with:
   "story_type": "feature",
   "workflow_state_id": <state_id>,
   "iteration_id": <iteration_id>,
-  "group_id": <team_id>,
+  "team_id": <team_id>,
   "story_links": [
     { "verb": "blocks", "object_story_id": <id of a story this one Blocks> },
     { "verb": "blocks", "subject_story_id": <id of a story this one is Blocked by> }
