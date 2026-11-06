@@ -12,7 +12,7 @@ Posts a user story to the Enterspeed Engineering team's current iteration in Sho
 1. If a formatted user story is already present in the conversation (from the `enterspeed-user-stories` skill or typed by the user), use it directly.
 2. If only a raw feature description is given, ask the user: "Would you like me to generate a formatted user story first using the Enterspeed template, or publish with this raw description?" Generate if they agree; otherwise use the raw description as the story body.
 3. Extract the title — the `**Title:**` line, without the `**Title:**` prefix. Leave that line out of the story body. If there is no title line, use the **"As a [role], I want [capability]"** line instead; if that is missing or malformed, reformat it before proceeding.
-4. Extract the dependencies — the `**Blocked by** … · **Blocks** …` line, if present. Leave that line out of the story body too; *Link the dependencies* below turns it into real Shortcut links.
+4. Extract the dependencies — the `**Blocked by** … · **Blocks** …` line, if present. Leave that line out of the story body too; *Resolve the dependencies* and *Create the story* below turn it into real Shortcut links.
 
 ## Prerequisites
 
@@ -32,24 +32,30 @@ Call `iterations-get-active` and pick the most recently started iteration.
 
 Call `teams-list` and find the team named `Engineering`.
 
-### 4. Create the story
+### 4. Resolve the dependencies
+
+Resolve each story named in the dependency line to its ID. If a named story can't be resolved, ask the user before creating anything rather than dropping it.
+
+### 5. Create the story
 
 Call `stories-create` with:
 
 ```json
 {
-  "name": "<title from step 3>",
+  "name": "<title from step 3 of How it works>",
   "description": "<full markdown story content, without the title and dependency lines>",
   "story_type": "feature",
   "workflow_state_id": <state_id>,
   "iteration_id": <iteration_id>,
-  "group_id": <team_id>
+  "group_id": <team_id>,
+  "story_links": [
+    { "verb": "blocks", "object_story_id": <id of a story this one Blocks> },
+    { "verb": "blocks", "subject_story_id": <id of a story this one is Blocked by> }
+  ]
 }
 ```
 
-### 5. Link the dependencies
-
-For each story named in the dependency line, call the Shortcut MCP's story-link tool with the verb `blocks`: the new story as subject for **Blocks**, as object for **Blocked by**. If a named story can't be resolved to an ID, ask the user rather than dropping it.
+The new story fills the side of each link that is left out. Omit `story_links` when there is no dependency line.
 
 ## After publishing
 

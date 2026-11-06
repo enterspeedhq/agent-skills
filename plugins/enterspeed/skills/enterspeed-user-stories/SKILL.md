@@ -40,6 +40,8 @@ Bugs are the exception: a bug's title states the problem. Bugs don't use this sk
 ```
 **Title:** [Outcome, short]
 
+**Blocked by** [story] · **Blocks** [story]
+
 ### 🎯 User Story
 **As a** [user role],
 **I want** [capability],
@@ -82,8 +84,6 @@ Bugs are the exception: a bug's title states the problem. Bugs don't use this sk
 
 ### 🎨 Design (if applicable)
 - [Figma link / mockup reference — leave blank if not applicable]
-
-**Blocked by** [story] · **Blocks** [story]
 ```
 
 ## Section Rules
@@ -94,7 +94,7 @@ Bugs are the exception: a bug's title states the problem. Bugs don't use this sk
 - **📌 Fixed Decisions** — Include only when an ADR or earlier decision already settles part of the design. One bold lead sentence per decision, citing its source — as a link to the file when it lives in an Enterspeed repo, not a bare "ingest/ADR-018". Omit the section when nothing is fixed.
 - **🔧 Open to the Implementer** — Choices the implementer may override, never implementation steps: no file lists, refactor steps or reuse hints. In a decision story, list the proposed values the decision should confirm or change. Omit the section when a spec or vectors pin the behaviour, or when there is nothing to offer.
 - **🔒 Security** — Always included. For most stories, keep it simple: state that security was considered and assessed as low risk. Only escalate to a brief description of the specific risk if the feature involves authentication, mutations, sensitive data, or access control.
-- **📊 Success Criteria** — Always included. Write a concrete, measurable definition of done — not vague language like "works correctly". Prefer the one test or demo that proves it. For a decision story, the measurable done is that the decision is merged and used by a named consumer; say that rather than repeat the first acceptance criterion.
+- **📊 Success Criteria** — Always included. Write a concrete, measurable definition of done — not vague language like "works correctly". Prefer the one test or demo that proves it. For a decision story, the measurable done is that the decision is merged as Accepted and names the consumer that will build on it; say that rather than repeat the first acceptance criterion.
 - **🎨 Design** — Optional. Include only if the feature clearly involves UI. Otherwise omit entirely.
 - **Dependency line** — Include only when the story blocks or is blocked by another. Otherwise omit.
 
@@ -121,7 +121,7 @@ Enterspeed is a headless CMS and data ingestion platform. Common user roles incl
 - **DevOps engineer** — managing environments, API keys, access
 - **Data engineer** — setting up data pipelines and transformations
 
-Keep acceptance criteria and tech notes consistent with this product domain when making inferences.
+Keep acceptance criteria and Open to the Implementer consistent with this product domain when making inferences.
 
 ## Tone & Style
 
