@@ -61,6 +61,12 @@ Bugs are the exception: a bug's title states the problem. Bugs don't use this sk
 
 ---
 
+### 🚫 Not in This Story
+- [What this story leaves out]
+- [Outside changes allowed, e.g. "No new endpoints"]
+
+---
+
 ### 📌 Fixed Decisions (if applicable)
 - **[Decision]** ([ADR or source]). [Detail the implementer must follow.]
 
@@ -82,6 +88,16 @@ Bugs are the exception: a bug's title states the problem. Bugs don't use this sk
 
 ---
 
+### 🧾 Proof
+- [What the PR attaches — log, screenshot or recording — and from which environment]
+
+---
+
+### 🚀 After Deployment (if applicable)
+- [Step to do once deployed, e.g. "Enter production prices"]
+
+---
+
 ### 🎨 Design (if applicable)
 - [Figma link / mockup reference — leave blank if not applicable]
 ```
@@ -91,10 +107,13 @@ Bugs are the exception: a bug's title states the problem. Bugs don't use this sk
 - **🎯 User Story** — Always included. If only a rough idea is given, infer a sensible user role.
 - **💡 Why** — Always included. State the gap in plain language. Cite the code or ADR it comes from when known.
 - **✅ Acceptance Criteria** — Always included. Write at least 3 criteria: a happy path, an edge case, and an error/failure scenario. In the Enterspeed context, edge cases include things like missing or malformed source data (e.g. empty SKU, null field), large result sets, or schema mismatches.
+- **🚫 Not in This Story** — Always included. Name what the story leaves out, so easy extras don't get built along the way. When the work touches an API, stored data, login or configuration, also say which outside changes are allowed, e.g. "No new endpoints."
 - **📌 Fixed Decisions** — Include only when an ADR or earlier decision already settles part of the design. One bold lead sentence per decision, citing its source — as a link to the file when it lives in an Enterspeed repo, not a bare "ingest/ADR-018". Omit the section when nothing is fixed.
 - **🔧 Open to the Implementer** — Choices the implementer may override, never implementation steps: no file lists, refactor steps or reuse hints. In a decision story, list the proposed values the decision should confirm or change. Omit the section when a spec or vectors pin the behaviour, or when there is nothing to offer.
 - **🔒 Security** — Always included. For most stories, keep it simple: state that security was considered and assessed as low risk. Only escalate to a brief description of the specific risk if the feature involves authentication, mutations, sensitive data, or access control.
-- **📊 Success Criteria** — Always included. Write a concrete, measurable definition of done — not vague language like "works correctly". Prefer the one test or demo that proves it. For a decision story, the measurable done is that the decision is merged as Accepted and names the consumer that will build on it; say that rather than repeat the first acceptance criterion.
+- **📊 Success Criteria** — Always included. Write a concrete, measurable definition of done — not vague language like "works correctly". The evidence that it was met belongs in **🧾 Proof**. For a decision story, the measurable done is that the decision is merged as Accepted and names the consumer that will build on it; say that rather than repeat the first acceptance criterion.
+- **🧾 Proof** — Always included. Say what the developer attaches to the PR — a log, a screenshot or a recording — from which named environment (dev or prod), and on existing data when the change affects it. A reviewer or an agent should be able to tell it works without testing it themselves. For a decision story, the proof is the merged document.
+- **🚀 After Deployment** — Optional. Steps someone must do once the change is deployed, e.g. entering production prices. Keep them here and nowhere else, so a deployment agent can find them. Omit the section when there are none.
 - **🎨 Design** — Optional. Include only if the feature clearly involves UI. Otherwise omit entirely.
 - **Dependency line** — Include only when the story blocks or is blocked by another. Otherwise omit.
 
@@ -128,3 +147,4 @@ Keep acceptance criteria and Open to the Implementer consistent with this produc
 - Be specific and testable — avoid vague criteria like "it should work" or "it should be fast"
 - Use present tense in acceptance criteria: "The system returns..." not "The system will return..."
 - Keep language concise and professional
+- Keep the section headings exactly as in the template — agents match on them
