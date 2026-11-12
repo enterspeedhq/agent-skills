@@ -1,6 +1,6 @@
 ---
 name: merge-without-review
-description: For engineers merging their own open pull request without an approving review (admin bypass). Writes down why, so the reason lands in the merge commit. Use this skill whenever the user says "merge without review", "bypass review", "admin merge", "merge with bypass", "no reviewer available", "I need to merge this now", "merge without waiting for requirements", "skip the review on this PR", or asks how to document a bypass before merging. Not for writing justifications for PRs that are already merged. Requires the GitHub CLI (gh).
+description: For engineers merging their own open pull request without an approving review (admin bypass) in a repo that requires review. Writes down why, so the reason lands in the merge commit. Use this skill whenever the user says "merge without review", "bypass review", "admin merge", "merge with bypass", "no reviewer available", "I need to merge this now", "merge without waiting for requirements", "skip the review on this PR", or asks how to document a bypass before merging. Not for writing justifications for PRs that are already merged. Requires the GitHub CLI (gh).
 ---
 
 # Merge Without Review
@@ -46,6 +46,8 @@ gh pr view [<pr>] --json number,title,body,state,headRefOid,files,additions,dele
 - No PR found: ask which one. This is the only question allowed in this step.
 - Merged or closed: say the skill is for open PRs and stop.
 - `reviewDecision` is `APPROVED`: nothing to bypass. Say so and stop.
+- `reviewDecision` is empty: the repo doesn't require a review (a `baseline` repo), so there's nothing to bypass and no reason to record. Tell them to merge normally and stop.
+- Continue only when `reviewDecision` is `REVIEW_REQUIRED` or `CHANGES_REQUESTED`.
 
 Take `<owner/repo>` from the PR URL. Check what ran on the head commit:
 
