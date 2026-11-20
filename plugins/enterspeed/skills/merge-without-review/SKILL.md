@@ -1,6 +1,6 @@
 ---
 name: merge-without-review
-description: For engineers merging their own open pull request without an approving review (admin bypass) in a repo that requires review. Writes down why, so the reason lands in the merge commit. Use this skill whenever the user says "merge without review", "bypass review", "admin merge", "merge with bypass", "no reviewer available", "I need to merge this now", "merge without waiting for requirements", "skip the review on this PR", or asks how to document a bypass before merging. Not for writing justifications for PRs that are already merged. Requires the GitHub CLI (gh).
+description: For engineers merging their own open pull request without an approving review (admin bypass) in a repo that requires review. Writes down why, so the reason lands in the merge commit. Use this skill whenever the user says "merge without review", "bypass review", "admin merge", "merge with bypass", "no reviewer available", "I need to merge this now", "merge without waiting for requirements", "skip the review on this PR", or asks how to document a bypass before merging. Also for merging an approved PR past a failing required check such as ci-gate ("ci-gate is red", "flaky check is blocking the merge"). Not for writing justifications for PRs that are already merged. Requires the GitHub CLI (gh).
 ---
 
 # Merge Without Review
@@ -21,9 +21,11 @@ If this skill ever disagrees with that doc, the doc wins.
 |---|---|
 | **Low or medium risk:** release and back-merge PRs, docs, CI config, small contained fixes | Bypass. The reason explains the risk and how it was verified. |
 | **Urgent fix:** production incident, customer blocked, a deadline that can't move | Bypass, then a **retrospective review** from a coworker. |
-| **Planned, non-urgent and high risk:** deletes data, changes auth or permissions, affects all tenants, infrastructure | A review from the most relevant coworker is expected. The engineer can still bypass, but the reason must say why no review was possible. |
+| **Planned, non-urgent and high risk:** deletes data, changes auth or permissions, affects all tenants, infrastructure | Request a review from the most relevant coworker, even if they don't know the codebase well. Bypass only if no review is possible, and the reason must say why. |
 
 Being the only one who knows a repo is a valid reason there's no reviewer; the case still decides what else happens.
+
+The same rules apply when the PR is approved but a required check (e.g. `ci-gate`) is failing: merging past it is a bypass too, and needs a reason.
 
 Template for the merge commit body:
 
@@ -33,6 +35,12 @@ Risk is <low/medium/high>: <what the change touches and what it doesn't>.
 Verified by: <tests, builds or manual runs that passed>.
 ```
 
+For an approved PR held back only by a failing required check, the first line is instead:
+
+```
+Admin bypass, required check failing: <check name>, <why merging anyway is safe>.
+```
+
 ---
 
 ## Step 1: Gather everything, silently
@@ -40,14 +48,15 @@ Verified by: <tests, builds or manual runs that passed>.
 Fetch the PR the user named (number or URL), otherwise the current branch's:
 
 ```bash
-gh pr view [<pr>] --json number,title,body,state,headRefOid,files,additions,deletions,reviewDecision,url
+gh pr view [<pr>] --json number,title,body,state,headRefOid,files,additions,deletions,reviewDecision,mergeStateStatus,url
 ```
 
 - No PR found: ask which one. This is the only question allowed in this step.
 - Merged or closed: say the skill is for open PRs and stop.
-- `reviewDecision` is `APPROVED`: nothing to bypass. Say so and stop.
+- `reviewDecision` is `APPROVED` and `mergeStateStatus` is `BLOCKED`: a required check is holding it back. Continue; this is a **failing-check bypass** (see the template above). Confirm which check failed from the check-runs below.
+- `reviewDecision` is `APPROVED` and not blocked: nothing to bypass. Say so and stop.
 - `reviewDecision` is empty: the repo doesn't require a review (a `baseline` repo), so there's nothing to bypass and no reason to record. Tell them to merge normally and stop.
-- Continue only when `reviewDecision` is `REVIEW_REQUIRED` or `CHANGES_REQUESTED`.
+- Otherwise continue only when `reviewDecision` is `REVIEW_REQUIRED` or `CHANGES_REQUESTED`.
 
 Take `<owner/repo>` from the PR URL. Check what ran on the head commit:
 
@@ -90,7 +99,7 @@ Rules for the text:
 - **Be specific:** build or run numbers, test counts, which environment was checked.
 - **No customer names** or identifiers (product numbers, tenant IDs). Write "one customer". This text is used as audit evidence.
 - **Urgent fix:** end the first line with "Retrospective review will be requested from <name>." (or "from a coworker").
-- **Failing checks:** if any check failed, the reason must say why merging anyway is safe. Make it a placeholder if you don't know.
+- **Failing checks:** if any check failed, the reason must say why merging anyway is safe. Make it a placeholder if you don't know. For a failing-check bypass on an approved PR, use the "required check failing" first line and leave out the retrospective review line.
 - Three lines. A fourth only for something an auditor would ask about.
 
 **High-risk, planned, non-urgent changes only:** replace the last line with:
@@ -108,15 +117,12 @@ If they edit the text or change the case, apply it and show only the changed par
 
 ## Step 3: Merge and finish
 
-On "yes":
+On "yes", first check the final body for anything still in angle brackets (`<…>`). The merge commit can't be changed afterwards, so don't merge with a placeholder in it: show the unfilled parts, ask for them, and ask "Merge?" again once they're filled.
+
+Write the confirmed body to a temporary file with your file-writing tool (not a shell heredoc, so it works the same on macOS, Linux and Windows), then:
 
 ```bash
-gh pr merge <pr> --repo <owner/repo> --admin --merge --body "$(cat <<'EOF'
-Admin bypass, no review: ...
-Risk is ...: ...
-Verified by: ...
-EOF
-)"
+gh pr merge <pr> --repo <owner/repo> --admin --merge --body-file <path-to-body-file>
 ```
 
 Leave `--subject` out so GitHub keeps its default subject. If GitHub says merge commits aren't allowed on the repo, retry once with `--squash` (it keeps the body). If the merge fails:
