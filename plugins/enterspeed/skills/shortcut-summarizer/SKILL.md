@@ -18,19 +18,20 @@ Extract from the conversation:
 | `weeks`     | `4`       | "last 2 weeks" → 2, "last sprint" → 2, "last week" → 1                     |
 | `state`     | `done`    | "in development", "ready for review", "blocked", "ready for deploy" → match by name |
 | `owner`     | `me`      | "for Sarah" → name, "whole team" / "everyone" / "the team" → all owners     |
-| `group`     | *(none)*  | "engineering team" / "engineering space" → `Engineering`                    |
+| `group`     | *(none)*  | "graph team" / "platform board" / "speedtrain" / "customer success" / "engineering team" → that team |
 | `iteration` | *(none)*  | "current iteration" / "kanban" → `Continues Kanban`                        |
 
-### Enterspeed Engineering Space
+### Enterspeed teams
 
-When the user asks about the **Engineering team's work** (e.g. "what's in development", "engineering team overview", "what's the team working on"), use these defaults:
+Each product has its own team: `Graph`, `Platform`, `Speedtrain` and `Customer Success`. `Engineering` holds internal work and PoCs only, so it is not the whole team's work.
+
+When the user asks about **the team's work** without naming a product (e.g. "what's in development", "team overview", "what's the team working on"), use these defaults:
 
 - owner: team (all members)
-- group: `Engineering`
+- group: *(none)*, so every team is included; group the summary by team
 - iteration: `Continues Kanban`
 
-This matches the Engineering space in the Shortcut UI at:
-`https://app.shortcut.com/enterspeed/stories/space/4297`
+When the user names a product or team, set `group` to that team.
 
 ---
 
@@ -55,10 +56,10 @@ Use `stories-search` for owner/state/date-based queries:
 - `owner:me` — stories assigned to the authenticated user
 - `owner:"Viktor"` — stories assigned to a specific person
 - `state:"in development"` — filter by workflow state name
-- `team:"Engineering"` — filter by group/team
+- `team:"Graph"` — filter by team (use the team's name)
 - `updated:>YYYY-MM-DD` — compute the cutoff date from the `weeks` parameter
 
-For team overviews, omit `owner:` and use `team:` instead.
+For team overviews, omit `owner:`; add `team:` only when a team is named.
 
 For detailed story content (descriptions, PRs), call `stories-get-by-id` on individual stories as needed.
 
@@ -67,6 +68,7 @@ For detailed story content (descriptions, PRs), call `stories-get-by-id` on indi
 ## Step 3: Present the Summary
 
 - Header: "Found N stories — [owner], [group if set], [iteration if set], state: [state]"
+- For an overview across teams, group by team first
 - Group by epic if stories share an epic, otherwise flat list
 - One line per story: `#ID — Story name (type) | Owner`
 - If no stories found, say so clearly and suggest widening the time range, checking the state name, or verifying the group/iteration filters
