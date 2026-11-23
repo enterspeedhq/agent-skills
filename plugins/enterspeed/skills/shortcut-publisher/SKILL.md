@@ -32,15 +32,17 @@ Call `get_current_iterations` and pick the most recently started iteration.
 
 Each product has its own team, and the story goes on the board of the product it changes. The repo the story changes decides the team:
 
-| Team | Repos | Also, when no repo is named |
-|---|---|---|
-| `Graph` | `semantic-graph`, `semantic-graph-sdk`, `graph-contracts`, `merchant-feeds`, `gmc-feed-builder`, `n8n-nodes-enterspeed` when the node works with the graph (otherwise `Engineering`) | anything under a Context Graph epic or objective; work where Speedtrain meets the graph (source-domain ingest, the factory as a registered consumer, writeback) |
-| `Platform` | `platform`, `infrastructure`, `enterspeed-js-mapping-api`, `enterspeed-js-schema-types`, `enterspeed-management-app`, `enterspeed-mcp`, `enterspeed-sdk-*`, `enterspeed-cli`, `enterspeed-destination-*` (except Shopify and Collector), `enterspeed-scheduled-*`, `enterspeed-smoke-tests` | Enterspeed Core in production: ingest, processing, delivery, Service Bus, Cosmos, Redis, compliance on the production estate |
-| `Speedtrain` | `speedtrain`, `speedtrain-app`, `speedtrain-mcp`, `speedtrain-infrastructure`, `speedtrain-*`, `enterspeed-destination-collector` | the Session Manager, the Collector |
-| `Customer Success` | `enterspeed-source-*`, `enterspeed-plugins-umbraco-cms`, `enterspeed-shopify`, `enterspeed-destination-shopify`, customer repos (`alfa-laval-*`, `bestseller-*`, `palsgaard-*`, `supplier-portal*`, `salling-*`, `gs1`, …) | a customer integration project or connector for a named customer |
-| `Engineering` | `agent-skills`, `scripts`, `sbom`, PoC repos (`poc-*`, `V2X-*`, `ai-readiness-*`) | internal work: ISMS and Vanta, access reviews, onboarding, tooling, process |
+| Team | Repos |
+|---|---|
+| `Graph` | `semantic-graph`, `semantic-graph-sdk`, `graph-contracts`, `merchant-feeds`, `gmc-feed-builder`, `enterspeed-feed-builder`, `enterspeed-context-graph-customer-demo-frontend`; `n8n-nodes-enterspeed` when the node works with the graph |
+| `Platform` | `platform`, `infrastructure`, `enterspeed-js-mapping-api`, `enterspeed-js-schema-types`, `enterspeed-management-app`, `enterspeed-management-frontend`, `enterspeed-mcp`, `enterspeed-sdk-*`, `enterspeed-cli`, `enterspeed-smoke-tests`, `enterspeed-elastic-heartbeat`, `enterspeed-b2c-userflow`, `enterspeed-scheduled-*`, `enterspeed-docs`, `enterspeed-skills`, `enterspeed-customer-demo-frontend`, `load-tests`, `ingest-helper`, `enterspeed-migrator`, `enterspeed-schema-specs`, `enterspeed-view-data-extensions`, `query-mcp-agent`, `enterspeed-query-mcp-demo`; **every destination** (`enterspeed-destination-*`, `bestseller-enterspeed-destination-syndigo`) and **every ingester** (`*-ingester`, e.g. `alfa-laval-enterspeed-ingester`, `bestseller-syndigo-ingester`) |
+| `Speedtrain` | `speedtrain`, `speedtrain-*` (app, mcp, infrastructure, smoke-tests and the rest), `spt-tenant-producer-poc`, `enterspeed-speedtrain-demo-site` |
+| `Customer Success` | customer repos: `alfa-laval-anonymiser`, `bestseller-*` feeds, `bolia-*`, `palsgaard-questionaires`, `mypalsgaard-blob-enterspeed`, `supplier-portal`, `supplier-portal-app`, `gs1`, `stark-matching-learnings`, `ee-contract-uploader`, `salling-group-migration`, `enterspeed-salling-product-cloud`, `bygningsreglementet-migrering`; connectors: `enterspeed-source-*`, `enterspeed-plugins-umbraco-cms`, `enterspeed-umbraco-query-picker`, `enterspeed-shopify`, `enterspeed-connector-template` |
+| `Engineering` | `agent-skills`, `scripts`, `sbom`, `azure-cost-alerts`, `es-history`, `pipelines-poc`, `hamsterbox-runner`, `enterspeed.com`, `drop`, `fetch`, `ai-readiness-*`, `V2X-*`, `poc-*`, `enterspeed-perfection-poc`; `n8n-nodes-enterspeed` when the node does not touch the graph |
 
-Both `Graph` and `Platform` have services called ingest, processing, delivery, management and MCP, so a service name alone never decides between them; the repo does. If the story names no repo, use its epic's team, then the product it describes. If a repo isn't in the table, decide by the product it serves. If two teams still fit, or none clearly does, ask the user which team before creating the story rather than defaulting to `Engineering`.
+A destination or ingester goes on `Platform` even when it is built for one customer. Both `Graph` and `Platform` have services called ingest, processing, delivery, management and MCP, so a service name never decides between them; the repo does.
+
+If the story names no repo, use its epic's team. If the repo isn't in the table, the story names neither a repo nor an epic, or it changes repos on two boards, ask the user which team before creating the story. Never fall back to `Engineering` without asking.
 
 `list_teams` also returns teams that are not product boards. Use `Agentic Product Cloud` only for stories under one of its epics or when the user names it, and never pick the `Hamster` team (a workflow experiment) unless the user asks for it.
 
