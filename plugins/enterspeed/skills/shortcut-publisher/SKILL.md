@@ -1,11 +1,11 @@
 ---
 name: shortcut-publisher
-description: Publish a user story to Shortcut for the Enterspeed Engineering team. Use when the user says "save to Shortcut", "create this in Shortcut", "add to Shortcut", "post to Shortcut", or "publish this story". Works on its own with a raw description, or after the enterspeed-user-stories skill has generated a formatted story.
+description: Publish a user story to Shortcut on the right Enterspeed product team (Graph, Platform, Speedtrain, Customer Success, or Engineering). Use when the user says "save to Shortcut", "create this in Shortcut", "add to Shortcut", "post to Shortcut", or "publish this story". Works on its own with a raw description, or after the enterspeed-user-stories skill has generated a formatted story.
 ---
 
 # Shortcut Publisher
 
-Posts a user story to the Enterspeed Engineering team's current iteration in Shortcut using the Shortcut MCP tools.
+Posts a user story to the current iteration in Shortcut, on the team for the product it belongs to, using the Shortcut MCP tools.
 
 ## How it works
 
@@ -28,9 +28,21 @@ Call `list_workflows` and find the `Product Development` workflow. Locate the `D
 
 Call `get_current_iterations` and pick the most recently started iteration.
 
-### 3. Get the Engineering team ID
+### 3. Pick the team
 
-Call `list_teams` and find the team named `Engineering`.
+Each product has its own team, and the story goes on the board of the product it changes:
+
+| Team | The story is about |
+|---|---|
+| `Graph` | semantic-graph, the graph SDK and dev server, the graph MCP, merchant feeds, n8n work for the graph, anything under a Context Graph epic or objective, and work where Speedtrain meets the graph (source-domain ingest, the factory as a registered consumer, writeback) |
+| `Platform` | platform (ingest, processing, delivery), infrastructure, the JS mapping API, the management app, the Query and Management MCPs, the Core SDKs and CLI, production compliance work |
+| `Speedtrain` | speedtrain, speedtrain-app, speedtrain-mcp, speedtrain infrastructure, the Session Manager |
+| `Customer Success` | a customer integration project or connector (a named customer, Shopify, Umbraco, Sitecore) |
+| `Engineering` | internal work: ISMS and Vanta, access reviews, onboarding, tooling, agent skills, process, PoCs |
+
+Work it out from the repo, epic or product the story names. If the story has an epic, the epic's team usually decides it. If two teams fit, or none clearly does, ask the user which team before creating the story rather than defaulting to `Engineering`.
+
+Call `list_teams` and take the ID of the chosen team. If no team with that name exists, stop and tell the user rather than picking another.
 
 ### 4. Resolve the dependencies
 
@@ -59,4 +71,4 @@ The new story fills the side of each link that is left out. Omit `story_links` w
 
 ## After publishing
 
-Show the user the story ID and URL as a clickable link. Confirm which iteration and team the story was added to (or note if these were not found).
+Show the user the story ID and URL as a clickable link. Confirm which iteration and team the story was added to, and why that team (or note if these were not found).
