@@ -34,11 +34,11 @@ Each product has its own team, and the story goes on the board of the product it
 
 | Team | Repos | Also, when no repo is named |
 |---|---|---|
-| `Graph` | `semantic-graph`, `semantic-graph-sdk`, `graph-contracts`, `merchant-feeds`, `gmc-feed-builder` | anything under a Context Graph epic or objective; work where Speedtrain meets the graph (source-domain ingest, the factory as a registered consumer, writeback) |
+| `Graph` | `semantic-graph`, `semantic-graph-sdk`, `graph-contracts`, `merchant-feeds`, `gmc-feed-builder`, `n8n-nodes-enterspeed` when the node works with the graph (otherwise `Engineering`) | anything under a Context Graph epic or objective; work where Speedtrain meets the graph (source-domain ingest, the factory as a registered consumer, writeback) |
 | `Platform` | `platform`, `infrastructure`, `enterspeed-js-mapping-api`, `enterspeed-js-schema-types`, `enterspeed-management-app`, `enterspeed-mcp`, `enterspeed-sdk-*`, `enterspeed-cli`, `enterspeed-destination-*` (except Shopify and Collector), `enterspeed-scheduled-*`, `enterspeed-smoke-tests` | Enterspeed Core in production: ingest, processing, delivery, Service Bus, Cosmos, Redis, compliance on the production estate |
 | `Speedtrain` | `speedtrain`, `speedtrain-app`, `speedtrain-mcp`, `speedtrain-infrastructure`, `speedtrain-*`, `enterspeed-destination-collector` | the Session Manager, the Collector |
 | `Customer Success` | `enterspeed-source-*`, `enterspeed-plugins-umbraco-cms`, `enterspeed-shopify`, `enterspeed-destination-shopify`, customer repos (`alfa-laval-*`, `bestseller-*`, `palsgaard-*`, `supplier-portal*`, `salling-*`, `gs1`, …) | a customer integration project or connector for a named customer |
-| `Engineering` | `agent-skills`, `scripts`, `sbom`, PoC repos (`poc-*`, `V2X-*`, `ai-readiness-*`, `n8n-nodes-enterspeed`) | internal work: ISMS and Vanta, access reviews, onboarding, tooling, process |
+| `Engineering` | `agent-skills`, `scripts`, `sbom`, PoC repos (`poc-*`, `V2X-*`, `ai-readiness-*`) | internal work: ISMS and Vanta, access reviews, onboarding, tooling, process |
 
 Both `Graph` and `Platform` have services called ingest, processing, delivery, management and MCP, so a service name alone never decides between them; the repo does. If the story names no repo, use its epic's team, then the product it describes. If a repo isn't in the table, decide by the product it serves. If two teams still fit, or none clearly does, ask the user which team before creating the story rather than defaulting to `Engineering`.
 
