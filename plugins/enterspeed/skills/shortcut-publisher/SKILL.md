@@ -42,7 +42,7 @@ Each product has its own team, and the story goes on the board of the product it
 
 A destination or ingester goes on `Platform` even when it is built for one customer. Both `Graph` and `Platform` have services called ingest, processing, delivery, management and MCP, so a service name never decides between them; the repo does.
 
-If the story names no repo, use its epic's team. If the repo isn't in the table, the story names neither a repo nor an epic, or it changes repos on two boards, ask the user which team before creating the story. Never fall back to `Engineering` without asking.
+If the story names no repo, use its epic's team. If the repo isn't in the table, the story names neither a repo nor an epic, or it changes repos on two boards, ask the user which team before creating the story, and offer `Engineering` as the suggested answer, the catch-all board. Don't put the story on `Engineering` until the user has answered.
 
 `list_teams` also returns teams that are not product boards. Use `Agentic Product Cloud` only for stories under one of its epics or when the user names it, and never pick the `Hamster` team (a workflow experiment) unless the user asks for it.
 
