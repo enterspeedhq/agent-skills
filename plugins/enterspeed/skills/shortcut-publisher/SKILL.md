@@ -13,6 +13,7 @@ Posts a user story to the current iteration in Shortcut, on the team for the pro
 2. If only a raw feature description is given, ask the user: "Would you like me to generate a formatted user story first using the Enterspeed template, or publish with this raw description?" Generate if they agree; otherwise use the raw description as the story body.
 3. Extract the title — the `**Title:**` line, without the `**Title:**` prefix. Leave that line out of the story body. If there is no title line, use the **"As a [role], I want [capability]"** line instead; if that is missing or malformed, reformat it before proceeding.
 4. Extract the dependencies — the `**Blocked by** … · **Blocks** …` line, if present. Leave that line out of the story body too; *Resolve the dependencies* and *Create the story* below turn it into real Shortcut links.
+5. Strip the assumptions — remove everything from the `### 💭 Assumptions Made` heading onwards, including the `---` rule just above it. It is a note to the person reviewing the draft, not part of the story.
 
 ## Prerequisites
 
@@ -59,7 +60,7 @@ Call `create_story` with:
 ```json
 {
   "name": "<title from step 3 of How it works>",
-  "description": "<full markdown story content, without the title and dependency lines>",
+  "description": "<full markdown story content, without the title, dependency line and assumptions block>",
   "story_type": "feature",
   "workflow_state_id": <state_id>,
   "iteration_id": <iteration_id>,

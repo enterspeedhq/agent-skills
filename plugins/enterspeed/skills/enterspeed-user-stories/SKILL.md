@@ -18,6 +18,8 @@ Both are valid starting points. Work with whatever is given.
 
 **Chores, technical-debt, and migration tasks use the same template** — don't fall back to a freehand format. Infer a sensible role (often **DevOps engineer** or **Engineer**), frame the goal as the change being made and the benefit as the problem it removes, and keep the acceptance + success criteria sections. Only true bug fixes and retrospective analysis are out of scope.
 
+**Decision stories** produce a document (an ADR, RFC or decision record) instead of a change that is deployed. They use the same template, with the section rules marked "decision story" below.
+
 ## Your Job
 
 1. **Generate a complete user story draft immediately** based on what's provided.
@@ -106,14 +108,14 @@ Bugs are the exception: a bug's title states the problem. Bugs don't use this sk
 
 - **🎯 User Story** — Always included. If only a rough idea is given, infer a sensible user role.
 - **💡 Why** — Always included. State the gap in plain language. Cite the code or ADR it comes from when known.
-- **✅ Acceptance Criteria** — Always included. Write at least 3 criteria: a happy path, an edge case, and an error/failure scenario. In the Enterspeed context, edge cases include things like missing or malformed source data (e.g. empty SKU, null field), large result sets, or schema mismatches.
+- **✅ Acceptance Criteria** — Always included. Write at least 3 criteria: a happy path, an edge case, and an error/failure scenario. In the Enterspeed context, edge cases include things like missing or malformed source data (e.g. empty SKU, null field), large result sets, or schema mismatches. In a decision story that records facts (settings, retention periods, measured times), add a criterion that each fact cites its source in the record (a command or portal reading with its date, the config line that sets it, or the story that measured it), and that an unsourced value is marked as an estimate.
 - **🚫 Not in This Story** — Always included. Name what the story leaves out, so easy extras don't get built along the way. When the work touches an API, stored data, login or configuration, also say which outside changes are allowed, e.g. "No new endpoints."
 - **📌 Fixed Decisions** — Include only when an ADR or earlier decision already settles part of the design. One bold lead sentence per decision, citing its source — as a link to the file when it lives in an Enterspeed repo, not a bare "ingest/ADR-018". Omit the section when nothing is fixed.
 - **🔧 Open to the Implementer** — Choices the implementer may override, never implementation steps: no file lists, refactor steps or reuse hints. In a decision story, list the proposed values the decision should confirm or change. Omit the section when a spec or vectors pin the behaviour, or when there is nothing to offer.
 - **🔒 Security** — Always included. For most stories, keep it simple: state that security was considered and assessed as low risk. Only escalate to a brief description of the specific risk if the feature involves authentication, mutations, sensitive data, or access control.
-- **📊 Success Criteria** — Always included. Write a concrete, measurable definition of done — not vague language like "works correctly". The evidence that it was met belongs in **🧾 Proof**. For a decision story, the measurable done is that the decision is merged as Accepted and names the consumer that will build on it; say that rather than repeat the first acceptance criterion.
-- **🧾 Proof** — Always included. Say what the developer attaches to the PR — a log, a screenshot or a recording — from which named environment (dev or prod), and on existing data when the change affects it. A reviewer or an agent should be able to tell it works without testing it themselves. For a decision story, the proof is the merged document.
-- **🚀 After Deployment** — Optional. Steps someone must do once the change is deployed, e.g. entering production prices. Keep them here and nowhere else, so a deployment agent can find them. Omit the section when there are none.
+- **📊 Success Criteria** — Always included. Write a concrete, measurable definition of done — not vague language like "works correctly". The evidence that it was met belongs in **🧾 Proof**. For a decision story, the measurable done is that the decision is merged as Accepted, signed off by the person who accepts it (name the role, e.g. ISMS Owner), and names the consumer that will build on it; say that rather than repeat the first acceptance criterion.
+- **🧾 Proof** — Included in every story that deploys a change. Say what the developer attaches to the PR — a log, a screenshot or a recording — from which named environment (dev or prod), and on existing data when the change affects it. A reviewer or an agent should be able to tell it works without testing it themselves. For a decision story, the proof is the merged document. Omit the section when that would only repeat the acceptance criteria or the sign-off named in Success Criteria, e.g. a decision record whose facts already cite their sources in the record itself.
+- **🚀 After Deployment** — Optional. Steps someone must do once the change is deployed, e.g. entering production prices. Keep them here and nowhere else, so a deployment agent can find them. Omit the section when there are none. Never in a decision story. A step that finishes the decision, such as copying its result into a register, is an acceptance criterion.
 - **🎨 Design** — Optional. Include only if the feature clearly involves UI. Otherwise omit entirely.
 - **Dependency line** — Include only when the story blocks or is blocked by another. Otherwise omit.
 
@@ -121,7 +123,7 @@ Bugs are the exception: a bug's title states the problem. Bugs don't use this sk
 
 ## Assumptions Block
 
-After the story, add a section like this. Each assumption should be a **concise single line** — not a full paragraph.
+After the story, add a section like this. Each assumption should be a **concise single line** — not a full paragraph. It is a note to the person reviewing the draft, not part of the story: never include it in the story's description when publishing.
 
 ---
 
