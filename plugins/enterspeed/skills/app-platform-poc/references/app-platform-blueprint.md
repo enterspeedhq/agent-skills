@@ -925,6 +925,10 @@ If the tool has auth, log in with the seeded admin (dev default `admin` / `admin
 
 ## 10. Infrastructure skeleton (components manifest)
 
+> **Enterspeed PoC environment?** If the target repo has a `POC_ENVIRONMENT.md` at its root, skip
+> this section and follow **Appendix C** instead: apply-ready Terraform for the existing environment,
+> plus a code deploy script.
+
 **Don't author full, apply-ready Terraform.** These tools are typically handed over, and
 whoever owns infrastructure completes and applies it. Instead, ship a
 `<tool>-platform/terraform/` **skeleton** that *declares which Azure components the tool needs*
