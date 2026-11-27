@@ -119,7 +119,7 @@ While building:
 
 - Replace `AppTemplate` / `app-template` with the real tokens everywhere, including namespaces, DB name, and JWT issuer/audience.
 - Copy the **Appendix A security wiring verbatim** — BCrypt, JWT signing, the httpOnly `SameSite=Strict` cookie, token validation. Vary only the things the appendix says may vary (roles, seeded users, `create-user`, token lifetime).
-- Stay lean. No OpenTelemetry, rate limiting, queues, or extra libraries unless a requirement genuinely needs one — and if you add one, say why in the hand-over.
+- Stay lean. No rate limiting, queues, or extra libraries unless a requirement genuinely needs one — and if you add one, say why in the hand-over. Telemetry is the exception: the Azure Monitor OpenTelemetry distro is part of the baseline, switched on only by `APPLICATIONINSIGHTS_CONNECTION_STRING` (blueprint §1 and §6.3).
 - Never commit secrets. Dev-only placeholder keys go in `appsettings.Development.json` / compose exactly as the blueprint shows; real values come from env vars or Key Vault.
 - Never commit fixtures containing personal or customer data. Gitignore them and use synthetic samples.
 
