@@ -15,12 +15,13 @@ The technical decisions are already made for you — they live in the team bluep
 
 Read `<skill-path>/references/app-platform-blueprint.md` **in full before writing any code**. It is the source of truth for the stack, repository layout, file contents, and conventions, and it contains the code you should use verbatim (with the `AppTemplate` / `app-template` placeholders replaced).
 
-Two optional appendices sit beside it. **Don't read them yet** — they only apply if the plan calls for them, and Step 7 tells you when:
+Three optional appendices sit beside it. **Don't read them yet** — they only apply if the plan calls for them, and Step 7 tells you when:
 
 | File | Applies when |
 |---|---|
 | `references/appendix-b-database.md` | the tool persists data — or has auth |
 | `references/appendix-a-auth.md` | the tool needs a login and/or admin area |
+| `references/appendix-c-poc-environment.md` | the target repo has a `POC_ENVIRONMENT.md` at its root (an Enterspeed PoC environment from **poc-provision**) |
 
 The blueprint is a verbatim copy of the team document — treat it as spec, not suggestion. Where it conflicts with your own preferences, the blueprint wins. Where it is silent, use judgement and say so.
 
@@ -44,6 +45,8 @@ From the input, work out the decisions in blueprint §3:
 6. **External integrations** — each becomes a typed `HttpClient`.
 7. **Admin-managed config** — a settings entity + screen (needs database + auth).
 
+8. **PoC environment** — does the target repo have a `POC_ENVIRONMENT.md` at its root? If so, the tool will be deployed to that Enterspeed PoC environment, and Appendix C applies. Read the file now, because its values feed the plan. Without the file, §10's skeleton applies as usual. Don't ask about it if the file is absent.
+
 Infer what you reasonably can and record it as an assumption. Ask only about the things that materially change what gets built and that you cannot infer — typically the tool name, the target folder, and the database/auth decisions. Ask them in **one grouped round**, not a drip of questions.
 
 If the requirements imply org-wide SSO / Entra ID, say plainly that it is out of scope for this blueprint (Appendix A is seeded username/password) and either proceed with the simple approach or stop for a decision — the user's call.
@@ -59,6 +62,7 @@ Present a short plan before touching the filesystem:
 - **Database** — yes/no, and why. **Auth** — yes/no, and why.
 - **Features** — a table: feature → endpoints → frontend page.
 - **Branching** — the model the generated repo will use; trunk-based unless the user says otherwise (§3).
+- **Deployment** — either "Enterspeed PoC environment `<rg>` (Appendix C): apply-ready Terraform and `deploy.sh`", or "§10 skeleton for the infra owner".
 - **Entities** — if persisting. **Integrations** — if any.
 - **Out of scope** — what you are deliberately not building.
 - **Assumptions** — one line each.
@@ -75,6 +79,7 @@ Run the blueprint's one-liner (`dotnet --list-sdks; node -v; npm -v; docker --ve
 - **Docker unavailable — missing, or the daemon isn't running — and the tool is stateless** → note it, tell the user they'll run `dotnet run` + `npm run dev` instead of compose, and continue.
 - **Docker unavailable and the tool has a database** → don't just stop. Say what's unavailable, then offer the two ways forward and let the user choose: point `ConnectionStrings__DefaultConnection` at any reachable Postgres (a native install, an existing container, a shared dev server) and skip the compose run, or pause until Docker is up. The compose file gets written either way — only the local smoke test changes.
 - **dotnet-ef missing and the tool has a database** → install it with the command from Appendix B, then continue.
+- **PoC environment (Appendix C):** also check `terraform version` (1.6+) and `az version`. If either is missing, the code can still be written, but Step 8's `terraform validate` can't run and the user can't deploy. Say so, and give the install link (https://developer.hashicorp.com/terraform/install, https://learn.microsoft.com/cli/azure/install-azure-cli). Then continue, and record the skipped check in the hand-over.
 
 ---
 
@@ -85,6 +90,7 @@ Resolve the absolute path for the new `<tool>/` folder and check it before writi
 - Path doesn't exist → create it and continue.
 - Path exists and is empty → continue.
 - Path already contains `<tool>-app` and `<tool>-platform` → this is an existing blueprint solution. Go to **Step 6**.
+- **A PoC repo whose only content is `POC_ENVIRONMENT.md`** (plus `.git`, and possibly a README or `.gitignore`) → continue. The repo root *is* `<tool>/` (Appendix C.1), so create `<tool>-app/` and `<tool>-platform/` directly in it. Leave `POC_ENVIRONMENT.md` untouched.
 - Path exists with other content → **stop** and ask where to put it. Never overwrite or delete existing files to make room.
 
 ---
@@ -112,7 +118,9 @@ Then continue at Step 8 (verify).
 6. **Frontend** — scaffold, config, api client, shell, then one page + one typed api module per feature (§7). Use the Appendix A auth shell instead of the plain shell if the tool has auth.
 7. **Tests** — both test projects, wired up during scaffolding, not after (Testing section). Unit-test the real logic — parsers, transforms, validators — and use golden-file tests where output must match an external contract.
 8. **README** at the top level (§8) — a new developer must be able to run the tool from it alone, including the full env var table.
-9. **Terraform skeleton** — the three files in §10. A components manifest and stubs, **not** apply-ready Terraform.
+9. **Terraform:**
+   - **Without `POC_ENVIRONMENT.md`:** the skeleton, the three files in §10. A components manifest and stubs, **not** apply-ready Terraform.
+   - **With `POC_ENVIRONMENT.md`:** read `references/appendix-c-poc-environment.md` now and follow it. That means apply-ready Terraform for the existing PoC environment, `deploy.sh`, and the README's Deploy section. It replaces §10.
 10. **CI workflow** and `.gitignore` (CI/CD section, §11).
 
 While building:
@@ -141,6 +149,8 @@ Then a local smoke test: bring the API up (`docker compose up --build`, or `dotn
 
 Finally, the dependency check from §11: `dotnet list package --vulnerable --include-transitive` and `npm audit`.
 
+**PoC environment (Appendix C):** also run `terraform fmt -check`, then `terraform init -backend=false` and `terraform validate`, all in `<tool>-platform/terraform`. **Don't run `terraform apply` or `deploy.sh`.** Deploying is the user's step, after they've activated the PIM group.
+
 If something fails, fix it and re-run. If the failure comes from the blueprint's own instructions, fix it in the generated code and flag the discrepancy in the hand-over so the blueprint can be corrected. **Never report success on a command you didn't run or that didn't pass** — quote the actual output instead.
 
 ---
@@ -157,7 +167,7 @@ Close with a short hand-over:
 
 - What was built — the two solutions, the features, database and auth decisions.
 - How to run it locally — the two commands, plus seeded credentials if auth.
-- What is deliberately incomplete — the Terraform skeleton and any CD stub are for the infra owner.
+- What is deliberately incomplete — the Terraform skeleton and any CD stub are for the infra owner. **In a PoC environment (Appendix C):** say instead what the user does to deploy: activate the PIM group, run `terraform init` and `apply` the first time, then `./deploy.sh`. Also say what's left out, e.g. a database in Azure, CD, a custom domain.
 - What the receiver must supply — secrets and env vars, named.
 - Known gaps, deferred items, and any deviation you made from the blueprint, with the reason.
 
@@ -171,5 +181,5 @@ Do not `git init`, commit, or push unless the user asks. If they do ask, show th
 
 - **Never** build this as a Python app, a Streamlit app, or a single fused frontend+backend project. Always the app + platform split.
 - Database and auth are **optional** — leaving them out is the default, not a shortcut. Don't add either without a requirement that needs it, and don't read an appendix you don't need.
-- Don't author apply-ready Terraform, don't deploy, and don't wire a CD pipeline. Those belong to the infra owner (§10).
+- Don't author apply-ready Terraform, don't deploy, and don't wire a CD pipeline. Those belong to the infra owner (§10). **The exception is a PoC environment (Appendix C):** there you write apply-ready Terraform and `deploy.sh` for the user to run. You still never deploy yourself, and still don't wire CD.
 - One skill, one job: this builds and extends blueprint-shaped PoCs. It doesn't review PRs, publish stories, or manage releases — use the dedicated skills for those.
