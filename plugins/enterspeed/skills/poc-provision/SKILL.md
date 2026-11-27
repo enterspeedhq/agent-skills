@@ -73,7 +73,8 @@ If the request has been changed or answered in the thread, the thread wins over 
 
 - `<app>` and `<customer>` are lowercase kebab-case with no special characters.
 - **Storage account names** must be 3–24 lowercase letters and digits and globally unique, so there are no hyphens, and the 4 random characters avoid clashes. Shorten `<customer><app>` if the name would exceed 24.
-- **Ignore the repo name in the request** if it doesn't follow this table. poc-request has previously invented names like `internal-brim`. Point out the difference.
+- **A `poc-` prefix on the repo name is allowed** (`enterspeedhq/poc-<app>`). Use it if the request does. No other prefixes.
+- **If the request's repo name doesn't follow the table** (e.g. `internal-brim`, which poc-request once invented), point out the difference and ask which name to use.
 
 **Tags:** `app=<app>`, `owner=<initials>`, `expires=<YYYY-MM-DD>`, `environment=poc`, `source=poc-register`, and `customer=<customer>` on path B. `owner` is the **initials** (the part of the UPN before the @), never a first name.
 
