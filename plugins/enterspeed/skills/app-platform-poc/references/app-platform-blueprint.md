@@ -94,8 +94,15 @@ dotnet --list-sdks; node -v; npm -v; docker --version
 | **Local run** | `Dockerfile` + `docker-compose.yml` (the API, plus Postgres if the tool has a DB) |
 | **Cloud** | An infra **skeleton** (components manifest) — the receiving infra owner completes it (§10) |
 
-Keep it **lean** — these are usually interim/internal tools. Don't add OpenTelemetry,
-rate limiting, message queues, etc. unless the idea actually needs them.
+Keep it **lean** — these are usually interim/internal tools. Don't add rate limiting, message
+queues, etc. unless the idea actually needs them.
+
+**Telemetry is the one exception: it's in the baseline.** The Azure Monitor OpenTelemetry distro is
+registered, but **only switches on when `APPLICATIONINSIGHTS_CONNECTION_STRING` is set** (§6.3).
+Locally nothing is sent and no key is needed. Once the tool is deployed to an Enterspeed PoC
+environment, telemetry works as soon as the variable is set, because PoC provisioning creates the
+Application Insights resource. Because it's OpenTelemetry, a different backend (e.g. Elastic) later
+means changing the exporter, not the code.
 
 ### Versions — pin the majors, never the patches
 
@@ -324,7 +331,8 @@ rm -f "$ROOT/AppTemplate.Platform/WeatherForecast.cs" \
 rmdir "$ROOT/AppTemplate.Platform/Controllers" 2>/dev/null   # controllers live in Presentation/Controllers/ (§5)
 # If your SDK scaffolded something else, delete whatever sample model + controller it created.
 
-# No extra packages in the baseline. Appendix B adds EF/Npgsql; Appendix A adds BCrypt + JwtBearer.
+# One package in the baseline: telemetry (§1, §6.3). Appendix B adds EF/Npgsql; Appendix A adds BCrypt + JwtBearer.
+dotnet add "$P" package Azure.Monitor.OpenTelemetry.AspNetCore
 ```
 
 Then set the local port in `AppTemplate.Platform/Properties/launchSettings.json`: the `http`
@@ -358,6 +366,7 @@ public partial class Program { }        // so integration tests can host it
 
 ```csharp
 using System.Reflection;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AppTemplate.Platform.Infrastructure.ServiceConfiguration;
@@ -383,6 +392,12 @@ public static class ServiceCollectionExtensions
         services.AddCors(o => o.AddPolicy("AllowFrontend", p => p
             .WithOrigins(origin).AllowAnyMethod().AllowAnyHeader().AllowCredentials()
             .WithExposedHeaders(CorrelationId.HeaderName)));
+
+        // Telemetry (§1): requests, dependencies, exceptions and ILogger output go to Application
+        // Insights via OpenTelemetry — but only when the environment supplies a connection string.
+        // Locally the key is absent, so nothing is registered and nothing leaves the machine.
+        if (!string.IsNullOrWhiteSpace(config["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
+            services.AddOpenTelemetry().UseAzureMonitor();
 
         // >>> register your tool's services + typed HttpClients here <<<
         // Database? add the registrations from Appendix B.   Auth? add the registrations from Appendix A.
@@ -501,9 +516,11 @@ public static class CorrelationId
 > console emitted no scopes at all, so the id was nowhere in `docker compose logs` while looking
 > perfectly correct in code. Log it explicitly and the id is there regardless of formatter.
 >
-> **Error tracking later.** If a Sentry or App Insights hook is ever wanted, the exception handler
-> above is the single funnel every unhandled failure already passes through — one registration, not
-> an audit. Leave the seam; don't wire a key at scaffold time to infrastructure nobody has chosen.
+> **Error tracking.** Once `APPLICATIONINSIGHTS_CONNECTION_STRING` is set, the telemetry registered
+> in §6.3 already records unhandled exceptions and the per-request log line. If a Sentry hook is ever
+> wanted instead, the exception handler above is the single funnel every unhandled failure passes
+> through — one registration, not an audit. Still don't commit a key: the connection string comes
+> from the environment, never from `appsettings`.
 
 ### 6.4 `appsettings.json` + `appsettings.Development.json`
 
@@ -876,6 +893,7 @@ it alone. Include:
    | `Cors__AllowedOrigin` | platform | yes | no | the frontend URL |
    | `ASPNETCORE_ENVIRONMENT` | platform | yes | no | `Development` locally, `Production` deployed |
    | `APP_VERSION` | platform | no | no | Image tag or commit SHA, surfaced by `GET /version`. Set by the deploy step; falls back to the assembly version, then `"unknown"` |
+   | `APPLICATIONINSIGHTS_CONNECTION_STRING` | platform | no | no* | Turns telemetry on (§6.3). Unset locally. *Ingestion-only, but keep it out of the repo |
    | `VITE_API_BASE` | app (build) | no | no | API base URL; empty = same-origin |
 
    If the tool uses auth (Appendix A), also document `JwtSettings__Key` (secret),
@@ -928,7 +946,8 @@ Produce these three files:
 | PostgreSQL Flexible Server *(only if the tool has a DB)* | App database | `B_Standard_B1ms` is ample; TLS (`SSL Mode=VerifyFull`); reachable via "allow Azure services" or a private endpoint |
 | Key Vault | Secrets store | connection string (if DB); JWT key & admin seed creds (if auth) |
 | User-assigned managed identity | API → Key Vault + ACR access | roles: **Key Vault Secrets User**, **AcrPull** |
-| Log Analytics workspace | Container App logs | |
+| Log Analytics workspace | Container App logs | In an Enterspeed PoC environment, provisioning creates it with a daily cap. Reuse it, don't create a second |
+| Application Insights (workspace-based) | API telemetry (§6.3) | In an Enterspeed PoC environment, provisioning creates it. Read its connection string with a data source |
 | Static Web App | Hosts the React frontend | |
 
 **Runtime configuration contract** — the Container App must be given these (secrets from Key
@@ -939,6 +958,7 @@ is needed once these are set:
 |---|---|---|
 | `ASPNETCORE_ENVIRONMENT` | `Production` | plain |
 | `APP_VERSION` | the image tag being deployed | plain (set by the deploy step, not IaC) |
+| `APPLICATIONINSIGHTS_CONNECTION_STRING` | the App Insights connection string | plain or Key Vault (ingestion-only) |
 | `ConnectionStrings__DefaultConnection` *(if DB)* | Postgres conn string incl. `SSL Mode=VerifyFull` | secret |
 | `Cors__AllowedOrigin` | the frontend URL | plain |
 | *(if auth)* `JwtSettings__Key` | 64-char random string | secret |
@@ -1039,6 +1059,7 @@ omit it. A local-only tool skips CD entirely (CI stays a recommended default).
 - [ ] **Database is optional (Appendix B)** — PostgreSQL/EF Core only if the tool persists data or uses auth. A stateless tool drops the EF packages, `DbContext`/factory, migrations, connection string, and the Postgres service.
 - [ ] **Auth is optional** — added only if the tool needs a login/admin area (Appendix A). Otherwise no login page, unauthenticated controllers, no `JwtSettings`/`Seeding`.
 - [ ] Config via env vars in prod (`__` maps to `:`); secrets from Key Vault. Nothing secret committed.
+- [ ] Telemetry: `Azure.Monitor.OpenTelemetry.AspNetCore` registered behind the `APPLICATIONINSIGHTS_CONNECTION_STRING` check (§6.3). Locally it's unset and the app starts and runs without it — verify that, since a missing check fails the first `dotnet run`.
 - [ ] *(if DB)* EF: an `IDesignTimeDbContextFactory` so `dotnet ef` works without a DB. `InitializeDatabaseAsync` migrates on boot (and seeds admins if auth).
 - [ ] .NET 10: `.slnx` solution — or `.sln`, whichever the SDK actually wrote (§6.1); `dotnet new webapi --use-controllers`; built-in OpenAPI (`AddOpenApi`/`MapOpenApi`).
 - [ ] Packages added **unpinned**, and every EF / Npgsql / `Microsoft.AspNetCore.*` package resolved to the SDK's major (§1, "Versions"). The `.csproj` and `package-lock.json` are the record — both committed.
